@@ -1,6 +1,5 @@
 // database.js — Vercel Postgres & SQLite Database Store for Q-Less
 const { Pool } = require('pg');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
@@ -22,6 +21,7 @@ class Database {
         fs.mkdirSync(DATA_DIR, { recursive: true });
       }
       const DB_FILE = path.join(DATA_DIR, 'qless.db');
+      const sqlite3 = require('sqlite3').verbose();
       this.db = new sqlite3.Database(DB_FILE, (err) => {
         if (err) {
           console.error('Error opening SQLite database:', err.message);
