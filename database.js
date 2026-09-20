@@ -1,95 +1,47 @@
-// database.js — Vercel Postgres & SQLite Database Store for Q-Less
+// database.js — Supabase PostgreSQL Database Store for Q-Less using pg
 const { Pool } = require('pg');
-const path = require('path');
-const fs = require('fs');
 
 const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
 
 class Database {
   constructor() {
-    this.isPg = Boolean(connectionString);
-    if (this.isPg) {
+    if (connectionString) {
       console.log('Connecting to PostgreSQL database via connection string...');
-      const isLocalHost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
       this.pool = new Pool({
         connectionString,
-        ssl: isLocalHost ? false : { rejectUnauthorized: false }
+        ssl: { rejectUnauthorized: false }
       });
+      this.ready = this.initSchema();
     } else {
-      const DATA_DIR = path.join(__dirname, 'data');
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
-      const DB_FILE = path.join(DATA_DIR, 'qless.db');
-      const sqlite3 = require('sqlite3').verbose();
-      this.db = new sqlite3.Database(DB_FILE, (err) => {
-        if (err) {
-          console.error('Error opening SQLite database:', err.message);
-        } else {
-          console.log('Connected to SQLite database at', DB_FILE);
-        }
-      });
+      console.log('No DATABASE_URL supplied; pg.Pool will use connection string when environment variable is set.');
+      this.ready = Promise.resolve();
     }
-    this.ready = this.initSchema();
   }
 
   translateSql(sql) {
-    if (!this.isPg) return sql;
     let paramIndex = 1;
     let translated = sql.replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY');
     translated = translated.replace(/\?/g, () => `$${paramIndex++}`);
     return translated;
   }
 
-  run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      if (this.isPg) {
-        const pgSql = this.translateSql(sql);
-        this.pool.query(pgSql, params, (err, res) => {
-          if (err) reject(err);
-          else resolve(res);
-        });
-      } else {
-        this.db.run(sql, params, function (err) {
-          if (err) reject(err);
-          else resolve(this);
-        });
-      }
-    });
+  async query(sql, params = []) {
+    const pgSql = this.translateSql(sql);
+    return await this.pool.query(pgSql, params);
   }
 
-  get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      if (this.isPg) {
-        const pgSql = this.translateSql(sql);
-        this.pool.query(pgSql, params, (err, res) => {
-          if (err) reject(err);
-          else resolve(res ? res.rows[0] : null);
-        });
-      } else {
-        this.db.get(sql, params, (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        });
-      }
-    });
+  async run(sql, params = []) {
+    return await this.query(sql, params);
   }
 
-  all(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      if (this.isPg) {
-        const pgSql = this.translateSql(sql);
-        this.pool.query(pgSql, params, (err, res) => {
-          if (err) reject(err);
-          else resolve(res ? res.rows : []);
-        });
-      } else {
-        this.db.all(sql, params, (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      }
-    });
+  async get(sql, params = []) {
+    const res = await this.query(sql, params);
+    return (res && res.rows && res.rows.length > 0) ? res.rows[0] : null;
+  }
+
+  async all(sql, params = []) {
+    const res = await this.query(sql, params);
+    return (res && res.rows) ? res.rows : [];
   }
 
   async initSchema() {
@@ -117,7 +69,7 @@ class Database {
     );`);
 
     await this.run(`CREATE TABLE IF NOT EXISTS dept_concerns (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       concern TEXT NOT NULL
     );`);
 
@@ -128,7 +80,7 @@ class Database {
     );`);
 
     await this.run(`CREATE TABLE IF NOT EXISTS service_concerns (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       office_id TEXT NOT NULL,
       concern TEXT NOT NULL
     );`);
@@ -201,11 +153,11 @@ class Database {
     // Check if initial seeding is needed
     const userCount = await this.get(`SELECT COUNT(*) as count FROM users;`);
     if (userCount && Number(userCount.count) === 0) {
-      console.log('Seeding initial Mapúa data into database...');
+      console.log('Seeding initial Mapúa data into PostgreSQL database...');
 
       await this.run(`INSERT INTO users (id, full_name, student_number, email, password_hash, role, created_at) VALUES
-        ('u-student-1', 'Juan Dela Cruz', '2023104592', 'student@mapua.edu.ph', 'demo', 'student', ?),
-        ('u-student-2', 'Maria Santos', '2023100011', 'maria@mapua.edu.ph', 'demo', 'student', ?);`,
+        ('u-student-1', 'Juan Dela Cruz', '2023104592', 'student@mapua.edu.ph', 'demo', 'student', $1),
+        ('u-student-2', 'Maria Santos', '2023100011', 'maria@mapua.edu.ph', 'demo', 'student', $2);`,
         [new Date().toISOString(), new Date().toISOString()]);
 
       await this.run(`INSERT INTO departments (id, name, code, active) VALUES
@@ -237,7 +189,7 @@ class Database {
         'Meeting with a Professor'
       ];
       for (const c of deptConcerns) {
-        await this.run(`INSERT INTO dept_concerns (concern) VALUES (?);`, [c]);
+        await this.run(`INSERT INTO dept_concerns (concern) VALUES ($1);`, [c]);
       }
 
       await this.run(`INSERT INTO service_offices (id, name, active) VALUES
@@ -267,22 +219,22 @@ class Database {
         { office_id: 'office-ss', concern: 'Other' }
       ];
       for (const sc of serviceConcerns) {
-        await this.run(`INSERT INTO service_concerns (office_id, concern) VALUES (?, ?);`, [sc.office_id, sc.concern]);
+        await this.run(`INSERT INTO service_concerns (office_id, concern) VALUES ($1, $2);`, [sc.office_id, sc.concern]);
       }
 
       await this.run(`INSERT INTO appointments (
         id, appointment_number, user_id, student_name, student_number, department_id, department_name, concern, professor, date, time, status, qr_token, created_at
       ) VALUES
-        ('app-101', 'A-101', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'dept-soit', 'School of Information Technology', 'Grade Consultation', 'Anne Curtis', '2026-09-08', '10:30 AM', 'Scheduled', 'QL-APP-A101-2023104592', ?),
-        ('app-102', 'A-102', 'u-student-2', 'Maria Santos', '2023100011', 'dept-soit', 'School of Information Technology', 'Enrollment / Academic Concern', 'None (No specific professor)', '2026-09-08', '11:00 AM', 'Scheduled', 'QL-APP-A102-2023100011', ?);`,
+        ('app-101', 'A-101', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'dept-soit', 'School of Information Technology', 'Grade Consultation', 'Anne Curtis', '2026-09-08', '10:30 AM', 'Scheduled', 'QL-APP-A101-2023104592', $1),
+        ('app-102', 'A-102', 'u-student-2', 'Maria Santos', '2023100011', 'dept-soit', 'School of Information Technology', 'Enrollment / Academic Concern', 'None (No specific professor)', '2026-09-08', '11:00 AM', 'Scheduled', 'QL-APP-A102-2023100011', $2);`,
         [new Date(Date.now() - 7200000).toISOString(), new Date(Date.now() - 3600000).toISOString()]);
 
       await this.run(`INSERT INTO queue_tickets (
         id, ticket_number, user_id, student_name, student_number, service_office_id, service_office_name, concern, counter, status, position, estimated_wait_min, qr_token, created_at, called_at
       ) VALUES
-        ('q-001', 'T-029', 'u-student-2', 'Maria Santos', '2023100011', 'office-treasury', 'Treasury', 'Payment Inquiry', 'Counter 1', 'Called', 1, 0, 'QL-QUE-T029-2023100011', ?, ?),
-        ('q-002', 'T-030', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'office-treasury', 'Treasury', 'Tuition Payment', NULL, 'Waiting', 2, 10, 'QL-QUE-T030-2023104592', ?, NULL),
-        ('q-003', 'R-001', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'office-registry', 'Registry', 'Transcript Request', NULL, 'Waiting', 1, 5, 'QL-QUE-R001-2023104592', ?, NULL);`,
+        ('q-001', 'T-029', 'u-student-2', 'Maria Santos', '2023100011', 'office-treasury', 'Treasury', 'Payment Inquiry', 'Counter 1', 'Called', 1, 0, 'QL-QUE-T029-2023100011', $1, $2),
+        ('q-002', 'T-030', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'office-treasury', 'Treasury', 'Tuition Payment', NULL, 'Waiting', 2, 10, 'QL-QUE-T030-2023104592', $3, NULL),
+        ('q-003', 'R-001', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'office-registry', 'Registry', 'Transcript Request', NULL, 'Waiting', 1, 5, 'QL-QUE-R001-2023104592', $4, NULL);`,
         [
           new Date(Date.now() - 3600000).toISOString(), new Date(Date.now() - 300000).toISOString(),
           new Date(Date.now() - 2400000).toISOString(),
@@ -292,11 +244,11 @@ class Database {
       await this.run(`INSERT INTO transactions (
         id, date, entity_name, concern, reference_number, type, student_name, status, waiting_duration, service_duration, created_at
       ) VALUES
-        ('tx-001', '2026-09-04', 'School of Information Technology', 'Grade Consultation', 'A-098', 'Department Consultation', 'Juan Dela Cruz', 'Completed', '12 mins', '10 mins', ?),
-        ('tx-002', '2026-09-04', 'Treasury', 'Payment Inquiry', 'T-028', 'Service Request', 'Maria Santos', 'Completed', '18 mins', '6 mins', ?);`,
+        ('tx-001', '2026-09-04', 'School of Information Technology', 'Grade Consultation', 'A-098', 'Department Consultation', 'Juan Dela Cruz', 'Completed', '12 mins', '10 mins', $1),
+        ('tx-002', '2026-09-04', 'Treasury', 'Payment Inquiry', 'T-028', 'Service Request', 'Maria Santos', 'Completed', '18 mins', '6 mins', $2);`,
         [new Date(Date.now() - 86400000).toISOString(), new Date(Date.now() - 86400000).toISOString()]);
 
-      console.log('Database seeding complete!');
+      console.log('PostgreSQL database seeding complete!');
     }
   }
 
@@ -305,13 +257,13 @@ class Database {
   async findUserByEmail(email) {
     await this.ready;
     if (!email) return null;
-    return await this.get(`SELECT * FROM users WHERE LOWER(email) = LOWER(?);`, [email.trim()]);
+    return await this.get(`SELECT * FROM users WHERE LOWER(email) = LOWER($1);`, [email.trim()]);
   }
 
   async createUser(user) {
     await this.ready;
     await this.run(
-      `INSERT INTO users (id, full_name, student_number, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+      `INSERT INTO users (id, full_name, student_number, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
       [user.id, user.full_name, user.student_number, user.email, user.password_hash, user.role || 'student', user.created_at || new Date().toISOString()]
     );
     return user;
@@ -325,7 +277,7 @@ class Database {
 
   async getDepartmentById(id) {
     await this.ready;
-    const row = await this.get(`SELECT id, name, code, active FROM departments WHERE id = ?;`, [id]);
+    const row = await this.get(`SELECT id, name, code, active FROM departments WHERE id = $1;`, [id]);
     if (!row) return null;
     return { ...row, active: Boolean(row.active) };
   }
@@ -349,7 +301,7 @@ class Database {
 
   async getServiceOfficeById(id) {
     await this.ready;
-    const row = await this.get(`SELECT id, name, active FROM service_offices WHERE id = ?;`, [id]);
+    const row = await this.get(`SELECT id, name, active FROM service_offices WHERE id = $1;`, [id]);
     if (!row) return null;
     return { ...row, active: Boolean(row.active) };
   }
@@ -368,11 +320,11 @@ class Database {
   async getActiveRequests(userId) {
     await this.ready;
     const appt = await this.get(
-      `SELECT * FROM appointments WHERE user_id = ? AND status IN ('Scheduled','Checked In','Waiting','Called','In Consultation') ORDER BY created_at DESC LIMIT 1;`,
+      `SELECT * FROM appointments WHERE user_id = $1 AND status IN ('Scheduled','Checked In','Waiting','Called','In Consultation') ORDER BY created_at DESC LIMIT 1;`,
       [userId]
     );
     const queue = await this.get(
-      `SELECT * FROM queue_tickets WHERE user_id = ? AND status IN ('Waiting','Called','In Service') ORDER BY created_at DESC LIMIT 1;`,
+      `SELECT * FROM queue_tickets WHERE user_id = $1 AND status IN ('Waiting','Called','In Service') ORDER BY created_at DESC LIMIT 1;`,
       [userId]
     );
     return { appointment: appt || null, queue: queue || null };
@@ -381,7 +333,7 @@ class Database {
   async checkAppointmentSlot(department_id, date, time) {
     await this.ready;
     const row = await this.get(
-      `SELECT id FROM appointments WHERE department_id = ? AND date = ? AND time = ? AND status != 'Cancelled';`,
+      `SELECT id FROM appointments WHERE department_id = $1 AND date = $2 AND time = $3 AND status != 'Cancelled';`,
       [department_id, date, time]
     );
     return Boolean(row);
@@ -393,7 +345,7 @@ class Database {
       `INSERT INTO appointments (
         id, appointment_number, user_id, student_name, student_number, department_id, department_name,
         concern, professor, date, time, status, qr_token, created_at, checked_in_at, called_at, started_at, completed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`,
       [
         appt.id, appt.appointment_number, appt.user_id, appt.student_name, appt.student_number,
         appt.department_id, appt.department_name, appt.concern, appt.professor, appt.date, appt.time,
@@ -407,7 +359,7 @@ class Database {
   async getDeptAppointments(deptId) {
     await this.ready;
     const appointments = await this.all(
-      `SELECT * FROM appointments WHERE department_id = ? ORDER BY created_at DESC;`,
+      `SELECT * FROM appointments WHERE department_id = $1 ORDER BY created_at DESC;`,
       [deptId]
     );
     return {
@@ -423,35 +375,35 @@ class Database {
 
   async getAppointmentById(id) {
     await this.ready;
-    return await this.get(`SELECT * FROM appointments WHERE id = ?;`, [id]);
+    return await this.get(`SELECT * FROM appointments WHERE id = $1;`, [id]);
   }
 
   async updateAppointment(id, fields) {
     await this.ready;
     const keys = Object.keys(fields);
     if (keys.length === 0) return;
-    const setClause = keys.map(k => `${k} = ?`).join(', ');
+    const setClause = keys.map((k, idx) => `${k} = $${idx + 1}`).join(', ');
     const values = keys.map(k => fields[k]);
     values.push(id);
-    await this.run(`UPDATE appointments SET ${setClause} WHERE id = ?;`, values);
+    await this.run(`UPDATE appointments SET ${setClause} WHERE id = $${keys.length + 1};`, values);
     return await this.getAppointmentById(id);
   }
 
   async countQueueTicketsByOffice(officeId) {
     await this.ready;
-    const row = await this.get(`SELECT COUNT(*) as count FROM queue_tickets WHERE service_office_id = ?;`, [officeId]);
+    const row = await this.get(`SELECT COUNT(*) as count FROM queue_tickets WHERE service_office_id = $1;`, [officeId]);
     return row ? Number(row.count) : 0;
   }
 
   async countWaitingQueueTickets(officeId) {
     await this.ready;
-    const row = await this.get(`SELECT COUNT(*) as count FROM queue_tickets WHERE service_office_id = ? AND status = 'Waiting';`, [officeId]);
+    const row = await this.get(`SELECT COUNT(*) as count FROM queue_tickets WHERE service_office_id = $1 AND status = 'Waiting';`, [officeId]);
     return row ? Number(row.count) : 0;
   }
 
   async getNowServingQueueTicket(officeId) {
     await this.ready;
-    return await this.get(`SELECT * FROM queue_tickets WHERE service_office_id = ? AND status = 'Called' LIMIT 1;`, [officeId]);
+    return await this.get(`SELECT * FROM queue_tickets WHERE service_office_id = $1 AND status = 'Called' LIMIT 1;`, [officeId]);
   }
 
   async createQueueTicket(ticket) {
@@ -460,7 +412,7 @@ class Database {
       `INSERT INTO queue_tickets (
         id, ticket_number, user_id, student_name, student_number, service_office_id, service_office_name,
         concern, counter, status, position, estimated_wait_min, now_serving, qr_token, created_at, called_at, started_at, completed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`,
       [
         ticket.id, ticket.ticket_number, ticket.user_id, ticket.student_name, ticket.student_number,
         ticket.service_office_id, ticket.service_office_name, ticket.concern, ticket.counter || null,
@@ -473,7 +425,7 @@ class Database {
 
   async getServiceRequests(officeId) {
     await this.ready;
-    const all = await this.all(`SELECT * FROM queue_tickets WHERE service_office_id = ? ORDER BY created_at ASC;`, [officeId]);
+    const all = await this.all(`SELECT * FROM queue_tickets WHERE service_office_id = $1 ORDER BY created_at ASC;`, [officeId]);
     const grouped = {};
     all.forEach(q => {
       if (!grouped[q.concern]) grouped[q.concern] = [];
@@ -493,23 +445,23 @@ class Database {
 
   async getQueueTicketById(id) {
     await this.ready;
-    return await this.get(`SELECT * FROM queue_tickets WHERE id = ?;`, [id]);
+    return await this.get(`SELECT * FROM queue_tickets WHERE id = $1;`, [id]);
   }
 
   async updateQueueTicket(id, fields) {
     await this.ready;
     const keys = Object.keys(fields);
     if (keys.length === 0) return;
-    const setClause = keys.map(k => `${k} = ?`).join(', ');
+    const setClause = keys.map((k, idx) => `${k} = $${idx + 1}`).join(', ');
     const values = keys.map(k => fields[k]);
     values.push(id);
-    await this.run(`UPDATE queue_tickets SET ${setClause} WHERE id = ?;`, values);
+    await this.run(`UPDATE queue_tickets SET ${setClause} WHERE id = $${keys.length + 1};`, values);
     return await this.getQueueTicketById(id);
   }
 
   async getQueueControllerState(officeId) {
     await this.ready;
-    const queue = await this.all(`SELECT * FROM queue_tickets WHERE service_office_id = ? ORDER BY created_at ASC;`, [officeId]);
+    const queue = await this.all(`SELECT * FROM queue_tickets WHERE service_office_id = $1 ORDER BY created_at ASC;`, [officeId]);
     const office = await this.getServiceOfficeById(officeId);
     return {
       officeId,
@@ -523,7 +475,7 @@ class Database {
     await this.ready;
     await this.run(
       `INSERT INTO transactions (id, date, entity_name, concern, reference_number, type, student_name, status, waiting_duration, service_duration, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`,
       [tx.id, tx.date, tx.entity_name, tx.concern, tx.reference_number, tx.type, tx.student_name, tx.status, tx.waiting_duration, tx.service_duration, tx.created_at || new Date().toISOString()]
     );
     return tx;
@@ -551,10 +503,8 @@ class Database {
   }
 
   async close() {
-    if (this.isPg && this.pool) {
+    if (this.pool) {
       await this.pool.end();
-    } else if (this.db) {
-      await new Promise((resolve) => this.db.close(resolve));
     }
   }
 }

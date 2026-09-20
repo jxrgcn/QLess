@@ -1,4 +1,4 @@
-// routes/student.js — Student Portal API with SQLite Database & Real-Time Socket
+// routes/student.js — Student Portal API with PostgreSQL Database & Real-Time Socket
 const express = require('express');
 const router = express.Router();
 const db = require('../database');

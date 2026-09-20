@@ -1,4 +1,4 @@
-// routes/admin.js - Admin & Analytics API routes with SQLite Database
+// routes/admin.js - Admin & Analytics API routes with PostgreSQL Database
 const express = require('express');
 const router = express.Router();
 const db = require('../database');

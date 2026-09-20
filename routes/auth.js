@@ -1,4 +1,4 @@
-// routes/auth.js — Multi-portal authentication with SQLite Database
+// routes/auth.js — Multi-portal authentication with PostgreSQL Database
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
