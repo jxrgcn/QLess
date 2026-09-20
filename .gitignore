@@ -5,3 +5,6 @@ data/
 *.db
 *.log
 .vercel
+
+qless.db
+*.db
