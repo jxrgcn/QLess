@@ -1,0 +1,395 @@
+{
+  "users": [
+    {
+      "id": "u-student-1",
+      "full_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "email": "student@mapua.edu.ph",
+      "password_hash": "demo",
+      "role": "student",
+      "created_at": "2026-09-04T01:40:46.510Z"
+    },
+    {
+      "id": "u-student-2",
+      "full_name": "Maria Santos",
+      "student_number": "2023100011",
+      "email": "maria@mapua.edu.ph",
+      "password_hash": "demo",
+      "role": "student",
+      "created_at": "2026-09-04T01:40:46.518Z"
+    }
+  ],
+  "departments": [
+    {
+      "id": "dept-soit",
+      "name": "School of Information Technology",
+      "code": "SOIT",
+      "active": true
+    },
+    {
+      "id": "dept-smda",
+      "name": "School of Multimedia and Digital Arts",
+      "code": "SMDA",
+      "active": false
+    },
+    {
+      "id": "dept-etysb",
+      "name": "E.T. Yuchengco School of Business",
+      "code": "ETYSB",
+      "active": false
+    },
+    {
+      "id": "dept-shs",
+      "name": "School of Health Sciences",
+      "code": "SHS",
+      "active": false
+    },
+    {
+      "id": "dept-sn",
+      "name": "School of Nursing",
+      "code": "SN",
+      "active": false
+    },
+    {
+      "id": "dept-som",
+      "name": "School of Medicine",
+      "code": "SOM",
+      "active": false
+    }
+  ],
+  "professors": [
+    {
+      "id": "none",
+      "name": "None (No specific professor)"
+    },
+    {
+      "id": "p1",
+      "name": "Anne Curtis"
+    },
+    {
+      "id": "p2",
+      "name": "Kathryn Bernardo"
+    },
+    {
+      "id": "p3",
+      "name": "Nadine Lustre"
+    },
+    {
+      "id": "p4",
+      "name": "Bea Alonzo"
+    },
+    {
+      "id": "p5",
+      "name": "Julia Barretto"
+    },
+    {
+      "id": "p6",
+      "name": "Piolo Pascual"
+    },
+    {
+      "id": "p7",
+      "name": "Dingdong Dantes"
+    },
+    {
+      "id": "p8",
+      "name": "Daniel Padilla"
+    },
+    {
+      "id": "p9",
+      "name": "Alden Richards"
+    },
+    {
+      "id": "p10",
+      "name": "Joshua Garcia"
+    }
+  ],
+  "deptConcerns": [
+    "Grade Consultation",
+    "Lecture Consultation",
+    "Academic Advising",
+    "Enrollment / Academic Concern",
+    "Meeting with a Professor"
+  ],
+  "serviceOffices": [
+    {
+      "id": "office-registry",
+      "name": "Registry",
+      "active": true
+    },
+    {
+      "id": "office-treasury",
+      "name": "Treasury",
+      "active": true
+    },
+    {
+      "id": "office-admissions",
+      "name": "Admissions",
+      "active": true
+    },
+    {
+      "id": "office-ss",
+      "name": "Student Services",
+      "active": true
+    }
+  ],
+  "serviceConcerns": {
+    "office-registry": [
+      "Transcript Request",
+      "Certificate / Document Request",
+      "Student Record Concern",
+      "Other"
+    ],
+    "office-treasury": [
+      "Tuition Payment",
+      "Payment Inquiry",
+      "Refund Concern",
+      "Assessment Concern",
+      "Other"
+    ],
+    "office-admissions": [
+      "Application Inquiry",
+      "Admission Requirements",
+      "Enrollment Inquiry",
+      "Document Submission",
+      "Other"
+    ],
+    "office-ss": [
+      "Student ID / Clearance",
+      "Scholarship Concern",
+      "General Assistance",
+      "Other"
+    ]
+  },
+  "appointments": [
+    {
+      "id": "app-1788486874152",
+      "appointment_number": "A-427",
+      "user_id": "u-student-1",
+      "student_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "department_id": "dept-soit",
+      "department_name": "School of Information Technology",
+      "concern": "Academic Advising",
+      "professor": "Kathryn Bernardo",
+      "date": "2026-09-16",
+      "time": "08:30 AM",
+      "status": "Called",
+      "qr_token": "QL-APP-A427-2023104592",
+      "created_at": "2026-09-04T01:54:34.152Z",
+      "checked_in_at": null,
+      "called_at": "2026-09-04T01:55:36.786Z",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "app-1788486154068",
+      "appointment_number": "A-764",
+      "user_id": "u-student-1",
+      "student_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "department_id": "dept-soit",
+      "department_name": "School of Information Technology",
+      "concern": "Grade Consultation",
+      "professor": "Anne Curtis",
+      "date": "2026-09-11",
+      "time": "08:30 AM",
+      "status": "Completed",
+      "qr_token": "QL-APP-A764-2023104592",
+      "created_at": "2026-09-04T01:42:34.069Z",
+      "checked_in_at": null,
+      "called_at": "2026-09-04T01:45:16.648Z",
+      "started_at": "2026-09-04T01:45:18.130Z",
+      "completed_at": "2026-09-04T01:45:19.939Z"
+    },
+    {
+      "id": "app-101",
+      "appointment_number": "A-101",
+      "user_id": "u-student-1",
+      "student_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "department_id": "dept-soit",
+      "department_name": "School of Information Technology",
+      "concern": "Grade Consultation",
+      "professor": "Anne Curtis",
+      "date": "2026-09-08",
+      "time": "10:30 AM",
+      "status": "Scheduled",
+      "qr_token": "QL-APP-A101-2023104592",
+      "created_at": "2026-09-03T23:40:46.518Z",
+      "checked_in_at": null,
+      "called_at": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "app-102",
+      "appointment_number": "A-102",
+      "user_id": "u-student-2",
+      "student_name": "Maria Santos",
+      "student_number": "2023100011",
+      "department_id": "dept-soit",
+      "department_name": "School of Information Technology",
+      "concern": "Enrollment / Academic Concern",
+      "professor": "None (No specific professor)",
+      "date": "2026-09-08",
+      "time": "11:00 AM",
+      "status": "Scheduled",
+      "qr_token": "QL-APP-A102-2023100011",
+      "created_at": "2026-09-04T00:40:46.518Z",
+      "checked_in_at": null,
+      "called_at": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "queueTickets": [
+    {
+      "id": "q-001",
+      "ticket_number": "T-029",
+      "user_id": "u-student-2",
+      "student_name": "Maria Santos",
+      "student_number": "2023100011",
+      "service_office_id": "office-treasury",
+      "service_office_name": "Treasury",
+      "concern": "Payment Inquiry",
+      "counter": "Counter 1",
+      "status": "Called",
+      "position": 1,
+      "estimated_wait_min": 0,
+      "qr_token": "QL-QUE-T029-2023100011",
+      "created_at": "2026-09-04T00:40:46.518Z",
+      "called_at": "2026-09-04T01:35:46.518Z",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "q-002",
+      "ticket_number": "T-030",
+      "user_id": "u-student-1",
+      "student_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "service_office_id": "office-treasury",
+      "service_office_name": "Treasury",
+      "concern": "Tuition Payment",
+      "counter": null,
+      "status": "Waiting",
+      "position": 2,
+      "estimated_wait_min": 10,
+      "qr_token": "QL-QUE-T030-2023104592",
+      "created_at": "2026-09-04T01:00:46.518Z",
+      "called_at": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "q-003",
+      "ticket_number": "R-001",
+      "user_id": "u-student-1",
+      "student_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "service_office_id": "office-registry",
+      "service_office_name": "Registry",
+      "concern": "Transcript Request",
+      "counter": "Counter 1",
+      "status": "Completed",
+      "position": 1,
+      "estimated_wait_min": 5,
+      "qr_token": "QL-QUE-R001-2023104592",
+      "created_at": "2026-09-04T01:20:46.518Z",
+      "called_at": "2026-09-04T01:43:13.435Z",
+      "started_at": "2026-09-04T01:43:14.698Z",
+      "completed_at": "2026-09-04T01:43:15.882Z"
+    },
+    {
+      "id": "q-1788486566271",
+      "ticket_number": "R-032",
+      "user_id": "u-student-1",
+      "student_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "service_office_id": "office-registry",
+      "service_office_name": "Registry",
+      "concern": "Transcript Request",
+      "counter": null,
+      "status": "Waiting",
+      "position": 1,
+      "estimated_wait_min": 5,
+      "now_serving": null,
+      "qr_token": "QL-QUE-R032-2023104592",
+      "created_at": "2026-09-04T01:49:26.271Z",
+      "called_at": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "q-1788486896986",
+      "ticket_number": "R-033",
+      "user_id": "u-student-1",
+      "student_name": "Juan Dela Cruz",
+      "student_number": "2023104592",
+      "service_office_id": "office-registry",
+      "service_office_name": "Registry",
+      "concern": "Student Record Concern",
+      "counter": null,
+      "status": "Waiting",
+      "position": 2,
+      "estimated_wait_min": 10,
+      "now_serving": null,
+      "qr_token": "QL-QUE-R033-2023104592",
+      "created_at": "2026-09-04T01:54:56.987Z",
+      "called_at": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "transactions": [
+    {
+      "id": "tx-1788486319939",
+      "date": "2026-09-04",
+      "entity_name": "School of Information Technology",
+      "concern": "Grade Consultation",
+      "reference_number": "A-764",
+      "type": "Department Consultation",
+      "student_name": "Juan Dela Cruz",
+      "status": "Completed",
+      "waiting_duration": "3 mins",
+      "service_duration": "1 mins"
+    },
+    {
+      "id": "tx-1788486195882",
+      "date": "2026-09-04",
+      "entity_name": "Registry",
+      "concern": "Transcript Request",
+      "reference_number": "R-001",
+      "type": "Service Request",
+      "student_name": "Juan Dela Cruz",
+      "status": "Completed",
+      "waiting_duration": "22 mins",
+      "service_duration": "1 mins"
+    },
+    {
+      "id": "tx-001",
+      "date": "2026-09-04",
+      "entity_name": "School of Information Technology",
+      "concern": "Grade Consultation",
+      "reference_number": "A-098",
+      "type": "Department Consultation",
+      "student_name": "Juan Dela Cruz",
+      "status": "Completed",
+      "waiting_duration": "12 mins",
+      "service_duration": "10 mins"
+    },
+    {
+      "id": "tx-002",
+      "date": "2026-09-04",
+      "entity_name": "Treasury",
+      "concern": "Payment Inquiry",
+      "reference_number": "T-028",
+      "type": "Service Request",
+      "student_name": "Maria Santos",
+      "status": "Completed",
+      "waiting_duration": "18 mins",
+      "service_duration": "6 mins"
+    }
+  ],
+  "notifications": []
+}

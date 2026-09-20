@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q-Less | Mapúa University Digital Queue &amp; Appointment System</title>
+  <meta name="description" content="Digital Appointment and Queue Management System for Mapúa University.">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/qr.js"></script>
+  <script src="/js/app.js" defer></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <a href="#" class="brand" data-view="landing">
+      <span class="brand-badge">MAPÚA</span>
+      <span class="brand-title">Q-Less</span>
+    </a>
+    <nav class="nav-links" id="main-nav-links">
+      <!-- populated by app.js -->
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 1. LANDING PAGE — centered card with login/register            -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-landing" class="view-section active-view">
+      <div class="landing-wrapper">
+        <div class="landing-card">
+          <div class="system-label">Mapúa University</div>
+          <h1>Q-Less</h1>
+          <p class="tagline">Digital Appointment and Queue Management</p>
+          <p class="description">
+            Schedule department consultations or manage your Mapúa administrative service requests — all without waiting in line.
+          </p>
+          <div class="landing-btn-row">
+            <button class="btn btn-primary" style="padding: 10px 24px; font-size: 14px;" data-view="student-login">Log In</button>
+            <button class="btn btn-outline" style="padding: 10px 24px; font-size: 14px;" data-view="student-register">Register</button>
+          </div>
+          <div class="landing-staff-link">
+            Staff or Secretary? <a href="#" data-view="staff-access" style="color: var(--color-primary); font-weight: 600; text-decoration: underline;">Access Staff Portals</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 2. STUDENT LOGIN                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-student-login" class="view-section hidden">
+      <div class="centered-page-wrapper">
+        <div class="centered-card">
+          <div class="card-title">Student Login</div>
+          <div class="card-subtitle">Sign in with your Mapúa email</div>
+          <div class="form-group">
+            <label class="form-label" for="login-email">Email Address</label>
+            <input class="form-control" type="email" id="login-email" placeholder="student@mapua.edu.ph">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <input class="form-control" type="password" id="login-password" placeholder="••••••••">
+          </div>
+          <div id="login-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;"></div>
+          <button class="btn btn-black btn-block" id="login-btn" style="margin-top:4px; padding:11px;">Log In</button>
+          <p style="text-align:center;font-size:12px;color:var(--color-text-muted);margin-top:16px;">
+            Don't have an account? <a href="#" data-view="student-register" style="color:var(--color-primary);font-weight:600;">Register</a>
+          </p>
+          <p style="text-align:center;font-size:12px;color:var(--color-text-muted);margin-top:8px;">
+            <a href="#" data-view="landing" style="color:var(--color-text-muted);">← Back</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 3. STUDENT REGISTER                                            -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-student-register" class="view-section hidden">
+      <div class="centered-page-wrapper">
+        <div class="centered-card" style="max-width:460px;">
+          <div class="card-title">Create Account</div>
+          <div class="card-subtitle">Register with your Mapúa email</div>
+          <div class="form-group">
+            <label class="form-label" for="reg-name">Full Name</label>
+            <input class="form-control" type="text" id="reg-name" placeholder="Juan Dela Cruz">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-studnum">Student Number</label>
+            <input class="form-control" type="text" id="reg-studnum" placeholder="2023xxxxxx">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Email Address</label>
+            <input class="form-control" type="email" id="reg-email" placeholder="student@mapua.edu.ph">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Password</label>
+            <input class="form-control" type="password" id="reg-password" placeholder="Minimum 8 characters">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-confirm">Confirm Password</label>
+            <input class="form-control" type="password" id="reg-confirm" placeholder="Repeat password">
+          </div>
+          <div id="register-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;"></div>
+          <button class="btn btn-black btn-block" id="register-btn" style="margin-top:4px;padding:11px;">Create Account</button>
+          <p style="text-align:center;font-size:12px;color:var(--color-text-muted);margin-top:16px;">
+            Already have an account? <a href="#" data-view="student-login" style="color:var(--color-primary);font-weight:600;">Log In</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 4. STUDENT DASHBOARD                                           -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-student-dashboard" class="view-section hidden">
+      <div class="main-container">
+        <div style="margin-bottom:28px; border-bottom:1px solid var(--color-border); padding-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h1 style="margin-bottom:4px; font-size:22px;">Welcome, <span id="dashboard-name">Student</span></h1>
+            <div style="font-size:13px; color:var(--color-text-muted);">What would you like to do today?</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="logout-btn">Log Out</button>
+        </div>
+
+        <!-- Active status banner -->
+        <div id="active-requests-banner" class="hidden" style="border:1px solid var(--color-border); border-left:4px solid var(--color-primary); background:#FFFBF9; border-radius:var(--radius-sm); padding:14px 18px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-weight:700; font-size:13px; color:var(--color-primary);">Active Request</div>
+            <div id="active-banner-text" style="font-size:13px; margin-top:2px;"></div>
+          </div>
+          <button class="btn btn-sm btn-primary" id="active-banner-btn">View Status</button>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="grid-2" style="gap:16px; margin-bottom:32px;">
+          <div class="panel" style="cursor:pointer;" data-view="dept-flow" id="dash-dept-btn">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-size:11px; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; margin-bottom:8px;">Department Concerns</div>
+                <h2 style="font-size:18px; margin-bottom:8px;">Schedule Appointment</h2>
+                <p style="font-size:13px; color:var(--color-text-secondary); line-height:1.6;">Consult with a professor or your department office for academic concerns.</p>
+              </div>
+              <div style="font-size:24px; color:var(--color-text-muted); margin-left:12px;">→</div>
+            </div>
+            <button class="btn btn-black btn-sm" style="margin-top:20px;" data-view="dept-flow">Book Appointment</button>
+          </div>
+          <div class="panel" style="cursor:pointer;" id="dash-svc-btn">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-size:11px; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; margin-bottom:8px;">Mapúa Services</div>
+                <h2 style="font-size:18px; margin-bottom:8px;">Get Queue Ticket</h2>
+                <p style="font-size:13px; color:var(--color-text-secondary); line-height:1.6;">Join the queue for Registry, Treasury, Admissions, and other university offices.</p>
+              </div>
+              <div style="font-size:24px; color:var(--color-text-muted); margin-left:12px;">→</div>
+            </div>
+            <button class="btn btn-black btn-sm" style="margin-top:20px;" data-view="service-flow">Get Queue Ticket</button>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2 style="font-size:16px; margin:0;">Recent Transactions</h2>
+            <button class="btn btn-secondary btn-sm" data-view="student-history">View All</button>
+          </div>
+          <div id="dashboard-history-table"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 5. DEPARTMENT APPOINTMENT FLOW                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-dept-flow" class="view-section hidden">
+      <div class="main-container" style="max-width:640px;">
+        <!-- Stepper -->
+        <div class="stepper" id="dept-stepper"></div>
+
+        <!-- Step 1: Select Department -->
+        <div id="dept-step-1">
+          <h2>Select Department</h2>
+          <p class="subtitle">Choose the department you would like to consult.</p>
+          <div id="dept-grid" style="display:flex; flex-direction:column; gap:10px; margin-top:16px;"></div>
+          <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-outline" data-view="student-dashboard">← Back</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Select Concern -->
+        <div id="dept-step-2" class="hidden">
+          <h2>Select Concern</h2>
+          <p class="subtitle">What is your reason for visiting <strong id="dept-step2-name"></strong>?</p>
+          <div id="concern-list" style="display:flex; flex-direction:column; gap:8px; margin-top:16px;"></div>
+          <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-outline" id="dept-back-step1">← Back</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Select Professor -->
+        <div id="dept-step-3" class="hidden">
+          <h2>Select Professor</h2>
+          <p class="subtitle">Which professor would you like to see? Select "None" if no specific professor.</p>
+          <div id="professor-list" style="display:flex; flex-direction:column; gap:8px; margin-top:16px;"></div>
+          <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-outline" id="dept-back-step2">← Back</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Select Date & Time -->
+        <div id="dept-step-4" class="hidden">
+          <h2>Select Date &amp; Time</h2>
+          <p class="subtitle">Choose your preferred schedule.</p>
+          <div class="form-group" style="margin-top:20px;">
+            <label class="form-label" for="appt-date">Date</label>
+            <input class="form-control" type="date" id="appt-date" style="max-width:260px;">
+          </div>
+          <div style="margin-top:16px;">
+            <div class="form-label">Available Time Slots</div>
+            <div class="slots-grid" id="time-slots-container"></div>
+          </div>
+          <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-outline" id="dept-back-step3">← Back</button>
+            <button class="btn btn-black" id="dept-to-confirm">Confirm Schedule →</button>
+          </div>
+        </div>
+
+        <!-- Step 5: Confirm Appointment -->
+        <div id="dept-step-5" class="hidden">
+          <h2>Confirm Appointment</h2>
+          <p class="subtitle">Please review your appointment details before submitting.</p>
+          <div class="summary-box" id="appt-summary"></div>
+          <div id="appt-confirm-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;"></div>
+          <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-outline" id="dept-back-step4">← Back</button>
+            <button class="btn btn-primary" id="confirm-appt-btn" style="padding:10px 24px;">Submit Appointment</button>
+          </div>
+        </div>
+
+        <!-- Step 6: QR Code Confirmation -->
+        <div id="dept-step-6" class="hidden">
+          <div style="text-align:center; padding:32px 0;">
+            <div style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">APPOINTMENT CONFIRMED</div>
+            <div style="font-size:26px; font-weight:900; margin-bottom:6px;" id="appt-success-num"></div>
+            <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:20px;" id="appt-success-details"></div>
+            <div class="qr-container" style="margin:0 auto; width:fit-content;">
+              <canvas id="appt-qr-canvas" class="qr-canvas"></canvas>
+              <div class="qr-label" id="appt-qr-label"></div>
+            </div>
+            <p style="font-size:12px; color:var(--color-text-muted); margin-top:20px; max-width:320px; margin-left:auto; margin-right:auto;">Present this QR code at the department on your appointment date. Save a screenshot for reference.</p>
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:24px;">
+              <button class="btn btn-outline" data-view="student-dashboard">Back to Dashboard</button>
+              <button class="btn btn-black" id="download-appt-qr">Download QR</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 6. SERVICE / QUEUE FLOW                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-service-flow" class="view-section hidden">
+      <div class="main-container" style="max-width:640px;">
+        <div class="stepper" id="service-stepper"></div>
+
+        <!-- Step 1: Select Service -->
+        <div id="svc-step-1">
+          <h2>Mapúa Services</h2>
+          <p class="subtitle">Select the university office you would like to visit.</p>
+          <div id="service-office-grid" style="display:flex; flex-direction:column; gap:10px; margin-top:16px;"></div>
+          <div style="margin-top:20px;">
+            <button class="btn btn-outline" data-view="student-dashboard">← Back</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Select Concern -->
+        <div id="svc-step-2" class="hidden">
+          <h2>Select Concern</h2>
+          <p class="subtitle">What do you need from <strong id="svc-step2-name"></strong>?</p>
+          <div id="svc-concern-list" style="display:flex; flex-direction:column; gap:8px; margin-top:16px;"></div>
+          <div style="margin-top:20px;">
+            <button class="btn btn-outline" id="svc-back-step1">← Back</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Confirmation -->
+        <div id="svc-step-3" class="hidden">
+          <h2>Confirm Queue Ticket</h2>
+          <p class="subtitle">Review your request before joining the queue.</p>
+          <div class="summary-box" id="svc-summary"></div>
+          <div id="svc-confirm-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;"></div>
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn btn-outline" id="svc-back-step2">← Back</button>
+            <button class="btn btn-primary" id="confirm-queue-btn" style="padding:10px 24px;">Get Queue Ticket</button>
+          </div>
+        </div>
+
+        <!-- Step 4: QR + Ticket -->
+        <div id="svc-step-4" class="hidden">
+          <div style="text-align:center; padding:32px 0;">
+            <div style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">QUEUE TICKET ISSUED</div>
+            <div class="ticket-card" style="max-width:320px; margin:0 auto 24px;">
+              <div style="font-size:11px; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; margin-bottom:4px;" id="ticket-office-label"></div>
+              <div class="ticket-num" id="ticket-number-display"></div>
+              <div style="font-size:13px; color:var(--color-text-secondary);" id="ticket-concern-display"></div>
+              <div style="margin-top:16px; font-size:12px; color:var(--color-text-muted);">Estimated Wait: <strong id="ticket-wait-display" style="color:var(--color-black);">—</strong></div>
+              <div style="margin-top:4px; font-size:12px; color:var(--color-text-muted);">Now Serving: <strong id="ticket-serving-display" style="color:var(--color-black);">—</strong></div>
+            </div>
+            <div class="qr-container" style="margin:0 auto; width:fit-content;">
+              <canvas id="svc-qr-canvas" class="qr-canvas"></canvas>
+              <div class="qr-label" id="svc-qr-label"></div>
+            </div>
+            <p style="font-size:12px; color:var(--color-text-muted); margin-top:20px; max-width:320px; margin-left:auto; margin-right:auto;">Keep this ticket. You will be notified when your number is called. Save a screenshot for reference.</p>
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:24px;">
+              <button class="btn btn-outline" data-view="student-dashboard">Back to Dashboard</button>
+              <button class="btn btn-black" id="download-queue-qr">Download QR</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 7. STUDENT HISTORY                                             -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-student-history" class="view-section hidden">
+      <div class="main-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; border-bottom:1px solid var(--color-border); padding-bottom:16px;">
+          <div>
+            <h1 style="font-size:20px; margin-bottom:2px;">Transaction History</h1>
+            <p class="subtitle" style="margin:0;">All your past appointments and queue sessions</p>
+          </div>
+          <button class="btn btn-outline btn-sm" data-view="student-dashboard">← Dashboard</button>
+        </div>
+        <div class="panel" style="padding:0; overflow:hidden;">
+          <div class="table-responsive">
+            <table class="table" id="history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Reference #</th>
+                  <th>Type</th>
+                  <th>Office / Department</th>
+                  <th>Concern</th>
+                  <th>Status</th>
+                  <th>Wait</th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 8. STAFF ACCESS — entry point chooser                          -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-staff-access" class="view-section hidden">
+      <div class="centered-page-wrapper">
+        <div class="centered-card" style="max-width:480px;">
+          <div class="card-title">Staff &amp; Secretary Access</div>
+          <div class="card-subtitle">Select the portal you would like to sign in to.</div>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+            <button class="btn btn-outline" style="justify-content:flex-start; padding:14px 18px; text-align:left;" data-view="dept-login">
+              <div>
+                <div style="font-weight:700; font-size:14px;">Departmental Portal</div>
+                <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;">Department Secretary — manage department appointments</div>
+              </div>
+            </button>
+            <button class="btn btn-outline" style="justify-content:flex-start; padding:14px 18px; text-align:left;" data-view="services-login">
+              <div>
+                <div style="font-weight:700; font-size:14px;">Services Staff Portal</div>
+                <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;">University Offices — manage service queue requests</div>
+              </div>
+            </button>
+            <button class="btn btn-outline" style="justify-content:flex-start; padding:14px 18px; text-align:left;" data-view="tv-select">
+              <div>
+                <div style="font-weight:700; font-size:14px;">Queue Display (TV Mode)</div>
+                <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;">Public queue monitor for waiting lobbies</div>
+              </div>
+            </button>
+          </div>
+          <p style="text-align:center; margin-top:20px; font-size:12px; color:var(--color-text-muted);">
+            <a href="#" data-view="landing" style="color:var(--color-text-muted);">← Back to Homepage</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 9. DEPARTMENTAL PORTAL LOGIN                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-dept-login" class="view-section hidden">
+      <div class="centered-page-wrapper">
+        <div class="centered-card">
+          <div class="card-title">Departmental Portal</div>
+          <div class="card-subtitle">Sign in as Department Secretary</div>
+          <div class="form-group">
+            <label class="form-label" for="dept-login-dept">Department</label>
+            <select class="form-control" id="dept-login-dept">
+              <option value="">Select Department</option>
+            </select>
+          </div>
+          <div style="font-size:12px; color:var(--color-text-muted); margin-top:-10px; margin-bottom:16px;" id="dept-login-notice"></div>
+          <div class="form-group">
+            <label class="form-label" for="dept-login-user">Username</label>
+            <input class="form-control" type="text" id="dept-login-user" placeholder="Enter username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dept-login-pass">Password</label>
+            <input class="form-control" type="password" id="dept-login-pass" placeholder="Enter password">
+          </div>
+          <div id="dept-login-error" class="hidden" style="color:var(--color-primary); font-size:13px; margin-bottom:12px;"></div>
+          <button class="btn btn-black btn-block" id="dept-login-btn" style="padding:11px;">Sign In</button>
+          <div style="margin-top:12px; background:#FFFBEB; border:1px solid var(--color-secondary); border-radius:var(--radius-sm); padding:10px 14px; font-size:12px;">
+            <strong>Demo:</strong> Select School of Information Technology<br>
+            Username: <code>demo_secretary</code> &nbsp; Password: <code>demo1234</code>
+          </div>
+          <p style="text-align:center; margin-top:16px; font-size:12px; color:var(--color-text-muted);">
+            <a href="#" data-view="staff-access" style="color:var(--color-text-muted);">← Back</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 10. SERVICES STAFF LOGIN                                       -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-services-login" class="view-section hidden">
+      <div class="centered-page-wrapper">
+        <div class="centered-card">
+          <div class="card-title">Services Staff Portal</div>
+          <div class="card-subtitle">Sign in as University Services Staff</div>
+          <div class="form-group">
+            <label class="form-label" for="svc-login-office">Service Office</label>
+            <select class="form-control" id="svc-login-office">
+              <option value="">Select Office</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="svc-login-user">Username</label>
+            <input class="form-control" type="text" id="svc-login-user" placeholder="Enter username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="svc-login-pass">Password</label>
+            <input class="form-control" type="password" id="svc-login-pass" placeholder="Enter password">
+          </div>
+          <div id="svc-login-error" class="hidden" style="color:var(--color-primary); font-size:13px; margin-bottom:12px;"></div>
+          <button class="btn btn-black btn-block" id="svc-login-btn" style="padding:11px;">Sign In</button>
+          <div style="margin-top:12px; background:#FFFBEB; border:1px solid var(--color-secondary); border-radius:var(--radius-sm); padding:10px 14px; font-size:12px;">
+            <strong>Demo:</strong> Select any office<br>
+            Username: <code>demo_service</code> &nbsp; Password: <code>service123</code>
+          </div>
+          <p style="text-align:center; margin-top:16px; font-size:12px; color:var(--color-text-muted);">
+            <a href="#" data-view="staff-access" style="color:var(--color-text-muted);">← Back</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 11. DEPT SECRETARY DASHBOARD                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-dept-dashboard" class="view-section hidden">
+      <div class="main-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; border-bottom:1px solid var(--color-border); padding-bottom:16px;">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; margin-bottom:4px;">Departmental Portal</div>
+            <h1 style="font-size:20px; margin-bottom:0;" id="dept-portal-name">School of Information Technology</h1>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="dept-refresh-btn">Refresh</button>
+            <button class="btn btn-outline btn-sm" id="dept-logout-btn">Sign Out</button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid-4" style="margin-bottom:24px;" id="dept-stats-grid"></div>
+
+        <!-- Tabs -->
+        <div class="staff-tabs">
+          <span class="staff-tab active" data-tab="dept-tab-today">Today's Appointments</span>
+          <span class="staff-tab" data-tab="dept-tab-all">All Appointments</span>
+        </div>
+
+        <div id="dept-tab-today">
+          <div class="panel" style="padding:0; overflow:hidden;">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Ref #</th>
+                    <th>Student</th>
+                    <th>Concern</th>
+                    <th>Professor</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dept-appt-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="dept-tab-all" class="hidden">
+          <div class="panel" style="padding:0; overflow:hidden;">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Ref #</th>
+                    <th>Date</th>
+                    <th>Student</th>
+                    <th>Concern</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dept-all-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 12. SERVICES STAFF DASHBOARD                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-services-dashboard" class="view-section hidden">
+      <div class="main-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; border-bottom:1px solid var(--color-border); padding-bottom:16px;">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; margin-bottom:4px;">Services Staff Portal</div>
+            <h1 style="font-size:20px; margin-bottom:0;" id="services-portal-name">Service Office</h1>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="svc-refresh-btn">Refresh</button>
+            <button class="btn btn-outline btn-sm" id="svc-logout-btn">Sign Out</button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid-4" style="margin-bottom:24px;" id="svc-stats-grid"></div>
+
+        <!-- Tabs -->
+        <div class="staff-tabs">
+          <span class="staff-tab active" data-tab="svc-tab-queue">Queue</span>
+          <span class="staff-tab" data-tab="svc-tab-requests">All Requests</span>
+          <span class="staff-tab" data-tab="svc-tab-controller">Queue Controller</span>
+        </div>
+
+        <div id="svc-tab-queue">
+          <div class="grid-2" style="gap:20px;">
+            <div>
+              <h3 style="margin-bottom:12px;">Now Serving</h3>
+              <div id="svc-now-serving-box" class="panel" style="text-align:center; padding:28px;">
+                <div style="font-size:13px; color:var(--color-text-muted);">No active ticket</div>
+              </div>
+            </div>
+            <div>
+              <h3 style="margin-bottom:12px;">Next in Queue</h3>
+              <div id="svc-next-box" class="panel" style="text-align:center; padding:28px;">
+                <div style="font-size:13px; color:var(--color-text-muted);">Queue is empty</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:20px;">
+            <h3 style="margin-bottom:12px;">Waiting List</h3>
+            <div class="panel" style="padding:0; overflow:hidden;">
+              <table class="table">
+                <thead><tr><th>Ticket #</th><th>Student</th><th>Concern</th><th>Position</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="svc-queue-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="svc-tab-requests" class="hidden">
+          <div class="panel" style="padding:0; overflow:hidden;">
+            <table class="table">
+              <thead><tr><th>Ticket #</th><th>Student</th><th>Concern</th><th>Status</th><th>Counter</th><th>Actions</th></tr></thead>
+              <tbody id="svc-all-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="svc-tab-controller" class="hidden">
+          <div class="panel">
+            <h3 style="margin-bottom:16px;">Queue Controller</h3>
+            <div class="queue-monitor-card" style="max-width:100%; margin:0; text-align:left;">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+                <div class="stat-box">
+                  <div class="stat-label">Now Serving</div>
+                  <div class="stat-num stat-num-red" id="ctrl-now-serving">—</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-label">Waiting</div>
+                  <div class="stat-num" id="ctrl-waiting">0</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-label">Completed Today</div>
+                  <div class="stat-num" id="ctrl-completed">0</div>
+                </div>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label class="form-label" for="ctrl-counter-select">Assign Counter</label>
+                <select class="form-control" id="ctrl-counter-select" style="max-width:200px;">
+                  <option value="Counter 1">Counter 1</option>
+                  <option value="Counter 2">Counter 2</option>
+                  <option value="Counter 3">Counter 3</option>
+                </select>
+              </div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="ctrl-call-next">Call Next</button>
+                <button class="btn btn-secondary" id="ctrl-recall">Recall</button>
+                <button class="btn btn-outline" id="ctrl-skip">Skip</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 13. TV SELECT                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-tv-select" class="view-section hidden">
+      <div class="centered-page-wrapper">
+        <div class="centered-card" style="max-width:420px;">
+          <div class="card-title">Queue Display</div>
+          <div class="card-subtitle">Choose the office to display</div>
+          <div class="form-group">
+            <label class="form-label" for="tv-office-select">Service Office</label>
+            <select class="form-control" id="tv-office-select"></select>
+          </div>
+          <button class="btn btn-black btn-block" id="tv-launch-btn" style="padding:11px;">Launch Display</button>
+          <p style="text-align:center; margin-top:16px; font-size:12px; color:var(--color-text-muted);">
+            <a href="#" data-view="staff-access" style="color:var(--color-text-muted);">← Back</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- 14. TV DISPLAY                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <section id="view-tv-display" class="view-section hidden" style="background:#090909; min-height:100vh; padding:0; margin:0; max-width:100%;">
+      <div class="tv-page">
+        <div class="tv-header">
+          <div>
+            <div class="tv-system-label">Q-Less &bull; Mapúa University</div>
+            <div class="tv-office-name" id="tv-office-name">Treasury</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px; color:#555; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Live Queue</div>
+            <div style="font-size:28px; color:#fff; font-weight:900;" id="tv-clock"></div>
+          </div>
+        </div>
+        <div class="tv-body">
+          <div class="tv-main-box">
+            <div class="tv-label">Now Serving</div>
+            <div class="tv-big-num" id="tv-now-serving">—</div>
+            <div class="tv-counter" id="tv-counter-label">Please proceed to the counter</div>
+          </div>
+          <div class="tv-side">
+            <div class="tv-side-box">
+              <div class="tv-side-label">Waiting</div>
+              <div class="tv-side-num" id="tv-waiting-count">0</div>
+            </div>
+            <div class="tv-side-box">
+              <div class="tv-side-label">Next</div>
+              <div class="tv-side-num" id="tv-next-ticket">—</div>
+            </div>
+            <div class="tv-side-box" style="flex:1;">
+              <div class="tv-side-label" style="margin-bottom:12px;">Queue</div>
+              <div id="tv-queue-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+            <div style="text-align:center; color:#333; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px;">
+              <button style="background:transparent; border:1px solid #333; color:#555; padding:8px 16px; border-radius:4px; cursor:pointer; font-size:11px;" data-view="staff-access" class="btn-tv-exit">Exit Display</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- NOTIFICATION TOAST                                             -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div id="notification-toast" class="hidden" style="position:fixed; bottom:24px; right:24px; background:var(--color-black); color:white; padding:14px 20px; border-radius:var(--radius-md); max-width:320px; font-size:13px; z-index:9999; border-left:4px solid var(--color-primary); box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+      <div id="toast-title" style="font-weight:700; margin-bottom:4px;"></div>
+      <div id="toast-body"></div>
+    </div>
+
+  </main>
+</body>
+</html>
