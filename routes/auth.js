@@ -31,44 +31,17 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Staff login requires an official @mapua.edu.ph email address.' });
     }
 
-    const user = await db.findUserByEmail(trimmedEmail);
-    if (!user)
-      return res.status(400).json({ error: 'Account does not exist.' });
-
-    if (user.role !== targetPortal)
-      return res.status(400).json({ error: `Account does not exist for the ${targetPortal} portal.` });
-
-    let match = false;
-    if (user.password_hash) {
-      if (user.password_hash.startsWith('$2b$') || user.password_hash.startsWith('$2a$')) {
-        try {
-          match = await bcrypt.compare(password, user.password_hash);
-        } catch (e) {
-          match = false;
-        }
-      }
-      if (!match) {
-        match = (user.password_hash === password) ||
-                (password === 'student123' && user.email === 'studentdemo@mymail.mapua.edu.ph') ||
-                (password === 'department123' && user.email === 'departmental@mapua.edu.ph') ||
-                (password === 'service123' && user.email === 'service@mapua.edu.ph');
-        if (match) {
-          const newHash = await bcrypt.hash(password, 10);
-          db.run(`UPDATE users SET password_hash = $1 WHERE id = $2;`, [newHash, user.id]).catch(() => {});
-        }
-      }
-    }
-
-    if (!match)
-      return res.status(400).json({ error: 'Incorrect password.' });
+    const user = await db.authenticateUser(trimmedEmail, password, targetPortal);
 
     // Map department & service office IDs if needed
     let deptId = user.role === 'department' ? 'dept-soit' : null;
     let serviceOfficeId = user.role === 'service' ? 'office-treasury' : null;
 
     if (user.role === 'service' && user.service_office) {
-      const off = await db.get(`SELECT id FROM service_offices WHERE LOWER(name) = LOWER($1);`, [user.service_office]);
-      if (off) serviceOfficeId = off.id;
+      try {
+        const off = await db.get(`SELECT id FROM service_offices WHERE LOWER(name) = LOWER($1);`, [user.service_office]);
+        if (off) serviceOfficeId = off.id;
+      } catch (e) {}
     }
 
     req.session.user = {
@@ -88,8 +61,8 @@ router.post('/login', async (req, res) => {
 
     res.json({ success: true, user: req.session.user });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Login failed.' });
+    console.error('Login error:', err.message || err);
+    res.status(400).json({ error: err.message || 'Login failed.' });
   }
 });
 
@@ -118,8 +91,9 @@ router.post('/register-student', async (req, res) => {
     if (existingUser)
       return res.status(400).json({ error: 'An account with this email already exists.' });
 
+    const sbUser = await db.registerSupabaseAuthUser(trimmedEmail, password, full_name, 'student');
     const password_hash = await bcrypt.hash(password, 10);
-    const userId = `u-${Date.now()}`;
+    const userId = sbUser ? sbUser.id : `u-${Date.now()}`;
     const studentNumber = `2026${Math.floor(100000 + Math.random() * 900000)}`;
 
     const newUser = {
@@ -173,8 +147,9 @@ router.post('/register-department', async (req, res) => {
     if (existingUser)
       return res.status(400).json({ error: 'An account with this email already exists.' });
 
+    const sbUser = await db.registerSupabaseAuthUser(trimmedEmail, password, full_name, 'department');
     const password_hash = await bcrypt.hash(password, 10);
-    const userId = `u-dept-${Date.now()}`;
+    const userId = sbUser ? sbUser.id : `u-dept-${Date.now()}`;
 
     const newUser = {
       id: userId,
@@ -238,8 +213,9 @@ router.post('/register-service', async (req, res) => {
     const serviceOfficeName = off ? off.name : service_office;
     const serviceOfficeId = off ? off.id : 'office-treasury';
 
+    const sbUser = await db.registerSupabaseAuthUser(trimmedEmail, password, full_name, 'service');
     const password_hash = await bcrypt.hash(password, 10);
-    const userId = `u-svc-${Date.now()}`;
+    const userId = sbUser ? sbUser.id : `u-svc-${Date.now()}`;
 
     const newUser = {
       id: userId,
