@@ -322,6 +322,9 @@ class Database {
           [stUser.id, stUser.full_name, stUser.student_number, stUser.email, stUser.password_hash, stUser.role, stUser.created_at]
         );
         await this.run(`INSERT INTO students (user_id, school) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET school = EXCLUDED.school;`, [stUser.id, stUser.school]);
+      } else {
+        await this.run(`UPDATE users SET password_hash = $1, role = $2 WHERE LOWER(email) = LOWER($3);`, [stUser.password_hash, stUser.role, stUser.email]);
+        await this.run(`INSERT INTO students (user_id, school) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET school = EXCLUDED.school;`, [existingStudent.id, stUser.school]);
       }
 
       const existingDept = await this.get(`SELECT id FROM users WHERE LOWER(email) = LOWER($1);`, [deptUser.email]);
@@ -331,6 +334,9 @@ class Database {
           [deptUser.id, deptUser.full_name, deptUser.email, deptUser.password_hash, deptUser.role, deptUser.created_at]
         );
         await this.run(`INSERT INTO departmental_staff (user_id, department) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET department = EXCLUDED.department;`, [deptUser.id, deptUser.department]);
+      } else {
+        await this.run(`UPDATE users SET password_hash = $1, role = $2 WHERE LOWER(email) = LOWER($3);`, [deptUser.password_hash, deptUser.role, deptUser.email]);
+        await this.run(`INSERT INTO departmental_staff (user_id, department) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET department = EXCLUDED.department;`, [existingDept.id, deptUser.department]);
       }
 
       const existingSvc = await this.get(`SELECT id FROM users WHERE LOWER(email) = LOWER($1);`, [svcUser.email]);
@@ -340,6 +346,9 @@ class Database {
           [svcUser.id, svcUser.full_name, svcUser.email, svcUser.password_hash, svcUser.role, svcUser.created_at]
         );
         await this.run(`INSERT INTO service_staff (user_id, service_office) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET service_office = EXCLUDED.service_office;`, [svcUser.id, svcUser.service_office]);
+      } else {
+        await this.run(`UPDATE users SET password_hash = $1, role = $2 WHERE LOWER(email) = LOWER($3);`, [svcUser.password_hash, svcUser.role, svcUser.email]);
+        await this.run(`INSERT INTO service_staff (user_id, service_office) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET service_office = EXCLUDED.service_office;`, [existingSvc.id, svcUser.service_office]);
       }
     }
 
