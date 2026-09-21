@@ -48,11 +48,26 @@ class Database {
     await this.run(`CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       full_name TEXT NOT NULL,
-      student_number TEXT NOT NULL,
+      student_number TEXT,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'student',
       created_at TEXT NOT NULL
+    );`);
+
+    await this.run(`CREATE TABLE IF NOT EXISTS students (
+      user_id TEXT PRIMARY KEY,
+      school TEXT NOT NULL
+    );`);
+
+    await this.run(`CREATE TABLE IF NOT EXISTS departmental_staff (
+      user_id TEXT PRIMARY KEY,
+      department TEXT NOT NULL
+    );`);
+
+    await this.run(`CREATE TABLE IF NOT EXISTS service_staff (
+      user_id TEXT PRIMARY KEY,
+      service_office TEXT NOT NULL
     );`);
 
     await this.run(`CREATE TABLE IF NOT EXISTS departments (
@@ -150,6 +165,37 @@ class Database {
       created_at TEXT NOT NULL
     );`);
 
+    // Always ensure all required service offices exist
+    const defaultServiceOffices = [
+      { id: 'office-admissions', name: 'Admissions' },
+      { id: 'office-treasury', name: 'Treasury' },
+      { id: 'office-registrar', name: 'Registrar' },
+      { id: 'office-accounting', name: 'Accounting' },
+      { id: 'office-cashier', name: 'Cashier' },
+      { id: 'office-sa', name: 'Student Affairs' },
+      { id: 'office-doit', name: 'DO-IT / IT Helpdesk' },
+      { id: 'office-other', name: 'Other Services' }
+    ];
+
+    for (const off of defaultServiceOffices) {
+      const existing = await this.get(`SELECT id FROM service_offices WHERE id = $1 OR LOWER(name) = LOWER($2);`, [off.id, off.name]);
+      if (!existing) {
+        await this.run(`INSERT INTO service_offices (id, name, active) VALUES ($1, $2, 1);`, [off.id, off.name]);
+      }
+    }
+
+    // Ensure default service concerns for all service offices
+    const allOffices = await this.all(`SELECT id, name FROM service_offices;`);
+    for (const off of allOffices) {
+      const count = await this.get(`SELECT COUNT(*) as count FROM service_concerns WHERE office_id = $1;`, [off.id]);
+      if (!count || Number(count.count) === 0) {
+        const concerns = ['General Inquiry', 'Document Request', 'Payment / Assessment', 'Processing Concern', 'Other'];
+        for (const c of concerns) {
+          await this.run(`INSERT INTO service_concerns (office_id, concern) VALUES ($1, $2);`, [off.id, c]);
+        }
+      }
+    }
+
     // Check if initial seeding is needed
     const userCount = await this.get(`SELECT COUNT(*) as count FROM users;`);
     if (userCount && Number(userCount.count) === 0) {
@@ -192,36 +238,6 @@ class Database {
         await this.run(`INSERT INTO dept_concerns (concern) VALUES ($1);`, [c]);
       }
 
-      await this.run(`INSERT INTO service_offices (id, name, active) VALUES
-        ('office-registry', 'Registry', 1),
-        ('office-treasury', 'Treasury', 1),
-        ('office-admissions', 'Admissions', 1),
-        ('office-ss', 'Student Services', 1);`);
-
-      const serviceConcerns = [
-        { office_id: 'office-registry', concern: 'Transcript Request' },
-        { office_id: 'office-registry', concern: 'Certificate / Document Request' },
-        { office_id: 'office-registry', concern: 'Student Record Concern' },
-        { office_id: 'office-registry', concern: 'Other' },
-        { office_id: 'office-treasury', concern: 'Tuition Payment' },
-        { office_id: 'office-treasury', concern: 'Payment Inquiry' },
-        { office_id: 'office-treasury', concern: 'Refund Concern' },
-        { office_id: 'office-treasury', concern: 'Assessment Concern' },
-        { office_id: 'office-treasury', concern: 'Other' },
-        { office_id: 'office-admissions', concern: 'Application Inquiry' },
-        { office_id: 'office-admissions', concern: 'Admission Requirements' },
-        { office_id: 'office-admissions', concern: 'Enrollment Inquiry' },
-        { office_id: 'office-admissions', concern: 'Document Submission' },
-        { office_id: 'office-admissions', concern: 'Other' },
-        { office_id: 'office-ss', concern: 'Student ID / Clearance' },
-        { office_id: 'office-ss', concern: 'Scholarship Concern' },
-        { office_id: 'office-ss', concern: 'General Assistance' },
-        { office_id: 'office-ss', concern: 'Other' }
-      ];
-      for (const sc of serviceConcerns) {
-        await this.run(`INSERT INTO service_concerns (office_id, concern) VALUES ($1, $2);`, [sc.office_id, sc.concern]);
-      }
-
       await this.run(`INSERT INTO appointments (
         id, appointment_number, user_id, student_name, student_number, department_id, department_name, concern, professor, date, time, status, qr_token, created_at
       ) VALUES
@@ -234,7 +250,7 @@ class Database {
       ) VALUES
         ('q-001', 'T-029', 'u-student-2', 'Maria Santos', '2023100011', 'office-treasury', 'Treasury', 'Payment Inquiry', 'Counter 1', 'Called', 1, 0, 'QL-QUE-T029-2023100011', $1, $2),
         ('q-002', 'T-030', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'office-treasury', 'Treasury', 'Tuition Payment', NULL, 'Waiting', 2, 10, 'QL-QUE-T030-2023104592', $3, NULL),
-        ('q-003', 'R-001', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'office-registry', 'Registry', 'Transcript Request', NULL, 'Waiting', 1, 5, 'QL-QUE-R001-2023104592', $4, NULL);`,
+        ('q-003', 'R-001', 'u-student-1', 'Juan Dela Cruz', '2023104592', 'office-registry', 'Registrar', 'Transcript Request', NULL, 'Waiting', 1, 5, 'QL-QUE-R001-2023104592', $4, NULL);`,
         [
           new Date(Date.now() - 3600000).toISOString(), new Date(Date.now() - 300000).toISOString(),
           new Date(Date.now() - 2400000).toISOString(),
@@ -250,6 +266,61 @@ class Database {
 
       console.log('PostgreSQL database seeding complete!');
     }
+
+    await this.seedDemoAccounts();
+  }
+
+  async seedDemoAccounts() {
+    const bcrypt = require('bcrypt');
+    const now = new Date().toISOString();
+
+    // 1. Student demo
+    const studentEmail = 'studentdemo@mymail.mapua.edu.ph';
+    const existingStudent = await this.get(`SELECT id FROM users WHERE LOWER(email) = LOWER($1);`, [studentEmail]);
+    if (!existingStudent) {
+      const hash = await bcrypt.hash('student123', 10);
+      const userId = 'u-student-demo';
+      await this.run(
+        `INSERT INTO users (id, full_name, student_number, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+        [userId, 'Demo Student', '2023100001', studentEmail, hash, 'student', now]
+      );
+      await this.run(
+        `INSERT INTO students (user_id, school) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET school = EXCLUDED.school;`,
+        [userId, 'School of Information Technology']
+      );
+    }
+
+    // 2. Department demo
+    const deptEmail = 'departmental@mapua.edu.ph';
+    const existingDept = await this.get(`SELECT id FROM users WHERE LOWER(email) = LOWER($1);`, [deptEmail]);
+    if (!existingDept) {
+      const hash = await bcrypt.hash('department123', 10);
+      const userId = 'u-dept-demo';
+      await this.run(
+        `INSERT INTO users (id, full_name, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6);`,
+        [userId, 'Department Staff', deptEmail, hash, 'department', now]
+      );
+      await this.run(
+        `INSERT INTO departmental_staff (user_id, department) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET department = EXCLUDED.department;`,
+        [userId, 'School of Information Technology']
+      );
+    }
+
+    // 3. Service demo
+    const serviceEmail = 'service@mapua.edu.ph';
+    const existingService = await this.get(`SELECT id FROM users WHERE LOWER(email) = LOWER($1);`, [serviceEmail]);
+    if (!existingService) {
+      const hash = await bcrypt.hash('service123', 10);
+      const userId = 'u-service-demo';
+      await this.run(
+        `INSERT INTO users (id, full_name, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6);`,
+        [userId, 'Service Staff', serviceEmail, hash, 'service', now]
+      );
+      await this.run(
+        `INSERT INTO service_staff (user_id, service_office) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET service_office = EXCLUDED.service_office;`,
+        [userId, 'Treasury']
+      );
+    }
   }
 
   // ── Database Methods ──────────────────────────────────────────────────
@@ -257,15 +328,35 @@ class Database {
   async findUserByEmail(email) {
     await this.ready;
     if (!email) return null;
-    return await this.get(`SELECT * FROM users WHERE LOWER(email) = LOWER($1);`, [email.trim()]);
+    const user = await this.get(`SELECT * FROM users WHERE LOWER(email) = LOWER($1);`, [email.trim()]);
+    if (!user) return null;
+
+    if (user.role === 'student') {
+      const st = await this.get(`SELECT school FROM students WHERE user_id = $1;`, [user.id]);
+      if (st) user.school = st.school;
+    } else if (user.role === 'department') {
+      const ds = await this.get(`SELECT department FROM departmental_staff WHERE user_id = $1;`, [user.id]);
+      if (ds) user.department = ds.department;
+    } else if (user.role === 'service') {
+      const ss = await this.get(`SELECT service_office FROM service_staff WHERE user_id = $1;`, [user.id]);
+      if (ss) user.service_office = ss.service_office;
+    }
+    return user;
   }
 
   async createUser(user) {
     await this.ready;
     await this.run(
       `INSERT INTO users (id, full_name, student_number, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-      [user.id, user.full_name, user.student_number, user.email, user.password_hash, user.role || 'student', user.created_at || new Date().toISOString()]
+      [user.id, user.full_name, user.student_number || null, user.email, user.password_hash, user.role || 'student', user.created_at || new Date().toISOString()]
     );
+    if (user.role === 'student' && user.school) {
+      await this.run(`INSERT INTO students (user_id, school) VALUES ($1, $2);`, [user.id, user.school]);
+    } else if (user.role === 'department' && user.department) {
+      await this.run(`INSERT INTO departmental_staff (user_id, department) VALUES ($1, $2);`, [user.id, user.department]);
+    } else if (user.role === 'service' && user.service_office) {
+      await this.run(`INSERT INTO service_staff (user_id, service_office) VALUES ($1, $2);`, [user.id, user.service_office]);
+    }
     return user;
   }
 

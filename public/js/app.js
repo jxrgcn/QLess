@@ -129,6 +129,28 @@ let socket = null;
 
 function goTo(viewName) {
   if (!VIEWS.includes(viewName)) return;
+
+  // Role-based navigation guard
+  if (currentUser) {
+    const role = currentUser.role;
+    const studentViews = ['student-dashboard', 'dept-flow', 'service-flow', 'student-history'];
+    const deptViews = ['dept-dashboard'];
+    const serviceViews = ['services-dashboard', 'tv-select', 'tv-display'];
+
+    if (role === 'student' && (deptViews.includes(viewName) || serviceViews.includes(viewName))) {
+      toast('Access Denied', 'You cannot access staff portals as a student.');
+      return goTo('student-dashboard');
+    }
+    if ((role === 'department' || role === 'dept_secretary') && (studentViews.includes(viewName) || serviceViews.includes(viewName))) {
+      toast('Access Denied', 'You are logged in as Departmental Staff.');
+      return goTo('dept-dashboard');
+    }
+    if ((role === 'service' || role === 'services_staff') && (studentViews.includes(viewName) || deptViews.includes(viewName))) {
+      toast('Access Denied', 'You are logged in as Service Office Staff.');
+      return goTo('services-dashboard');
+    }
+  }
+
   VIEWS.forEach(v => {
     const el = $(`view-${v}`);
     if (el) el.classList.toggle('active-view', v === viewName);
@@ -155,9 +177,9 @@ function updateNav() {
       { label: 'Get Queue Ticket', view: 'service-flow' },
       { label: 'History', view: 'student-history' }
     ];
-  } else if (role === 'dept_secretary') {
+  } else if (role === 'department' || role === 'dept_secretary') {
     links = [{ label: 'Appointment Manager', view: 'dept-dashboard' }];
-  } else if (role === 'services_staff') {
+  } else if (role === 'service' || role === 'services_staff') {
     links = [{ label: 'Queue Manager', view: 'services-dashboard' }];
   }
 
@@ -183,8 +205,8 @@ function updateNav() {
 /* ── View Enter Callbacks ────────────────────────────────────────── */
 function onViewEnter(v) {
   if (v === 'landing') renderLanding();
-  if (v === 'dept-login') renderDeptLogin();
-  if (v === 'services-login') renderServicesLogin();
+  if (v === 'student-login' || v === 'dept-login' || v === 'services-login') setupPortalLogin();
+  if (v === 'student-register') setupPortalRegister();
   if (v === 'student-dashboard') renderStudentDashboard();
   if (v === 'dept-flow') resetDeptFlow();
   if (v === 'service-flow') resetServiceFlow();
@@ -263,8 +285,8 @@ async function checkSession() {
 function routeByRole() {
   if (!currentUser) return goTo('landing');
   if (currentUser.role === 'student') return goTo('student-dashboard');
-  if (currentUser.role === 'dept_secretary') return goTo('dept-dashboard');
-  if (currentUser.role === 'services_staff') return goTo('services-dashboard');
+  if (currentUser.role === 'department' || currentUser.role === 'dept_secretary') return goTo('dept-dashboard');
+  if (currentUser.role === 'service' || currentUser.role === 'services_staff') return goTo('services-dashboard');
 }
 
 async function logout() {
@@ -279,30 +301,112 @@ function renderLanding() {
   // Nothing dynamic — static HTML
 }
 
-/* ── Student Login ───────────────────────────────────────────────── */
-function bindStudentLogin() {
+/* ── Unified Multi-Portal Login ───────────────────────────────────── */
+function setupPortalLogin() {
+  bindPortalLoginTabs();
+  bindUnifiedLoginBtn();
+}
+
+function bindPortalLoginTabs() {
+  document.querySelectorAll('.portal-tab-btn').forEach(btn => {
+    if (btn._bound) return;
+    btn._bound = true;
+    btn.addEventListener('click', () => {
+      const portal = btn.dataset.portal;
+      document.querySelectorAll('.portal-tab-btn').forEach(b => {
+        const isActive = b.dataset.portal === portal;
+        b.classList.toggle('active', isActive);
+        b.style.background = isActive ? 'var(--color-primary)' : 'white';
+        b.style.color = isActive ? 'white' : 'var(--color-text-secondary)';
+        b.style.borderColor = isActive ? 'var(--color-primary)' : 'var(--color-border)';
+      });
+
+      const typeInput = $('login-portal-type');
+      if (typeInput) typeInput.value = portal;
+
+      const hint = $('login-domain-hint');
+      const emailInput = $('login-email');
+      const subtitle = $('login-portal-subtitle');
+      const demoContent = $('demo-credentials-content');
+
+      if (portal === 'student') {
+        if (hint) hint.textContent = '(@mymail.mapua.edu.ph)';
+        if (emailInput) emailInput.placeholder = 'studentdemo@mymail.mapua.edu.ph';
+        if (subtitle) subtitle.textContent = 'Sign in to Mapúa Student Portal';
+        if (demoContent) demoContent.innerHTML = '<strong>Email:</strong> <code>studentdemo@mymail.mapua.edu.ph</code><br><strong>Password:</strong> <code>student123</code>';
+      } else if (portal === 'department') {
+        if (hint) hint.textContent = '(@mapua.edu.ph)';
+        if (emailInput) emailInput.placeholder = 'departmental@mapua.edu.ph';
+        if (subtitle) subtitle.textContent = 'Sign in to Departmental Portal';
+        if (demoContent) demoContent.innerHTML = '<strong>Email:</strong> <code>departmental@mapua.edu.ph</code><br><strong>Password:</strong> <code>department123</code>';
+      } else if (portal === 'service') {
+        if (hint) hint.textContent = '(@mapua.edu.ph)';
+        if (emailInput) emailInput.placeholder = 'service@mapua.edu.ph';
+        if (subtitle) subtitle.textContent = 'Sign in to Service Office Portal';
+        if (demoContent) demoContent.innerHTML = '<strong>Email:</strong> <code>service@mapua.edu.ph</code><br><strong>Password:</strong> <code>service123</code>';
+      }
+    });
+  });
+}
+
+function bindUnifiedLoginBtn() {
   const btn = $('login-btn');
   if (!btn || btn._bound) return;
   btn._bound = true;
   btn.addEventListener('click', async () => {
+    const portal_type = $('login-portal-type') ? $('login-portal-type').value : 'student';
     const email = $('login-email').value.trim();
     const password = $('login-password').value;
     const errEl = $('login-error');
     clearErr(errEl);
-    if (!email || !password) return err(errEl, 'Please enter your email and password.');
+
+    if (!email || !password) return err(errEl, 'Please enter your email address and password.');
+
     btn.disabled = true; btn.textContent = 'Signing in…';
     try {
-      const data = await api('POST', '/api/auth/login-student', { email, password });
+      const data = await api('POST', '/api/auth/login', { portal_type, email, password });
       currentUser = data.user;
       initSocket();
-      goTo('student-dashboard');
+      routeByRole();
     } catch (e) { err(errEl, e.message); }
     finally { btn.disabled = false; btn.textContent = 'Log In'; }
   });
 }
 
-/* ── Student Register ────────────────────────────────────────────── */
-function bindStudentRegister() {
+/* ── Multi-Portal Registration Setup ──────────────────────────────── */
+function setupPortalRegister() {
+  bindPortalRegisterTabs();
+  bindStudentRegisterBtn();
+  bindDeptRegisterBtn();
+  bindServiceRegisterBtn();
+}
+
+function bindPortalRegisterTabs() {
+  document.querySelectorAll('.reg-tab-btn').forEach(btn => {
+    if (btn._bound) return;
+    btn._bound = true;
+    btn.addEventListener('click', () => {
+      const regtype = btn.dataset.regtype;
+      document.querySelectorAll('.reg-tab-btn').forEach(b => {
+        const isActive = b.dataset.regtype === regtype;
+        b.classList.toggle('active', isActive);
+        b.style.background = isActive ? 'var(--color-primary)' : 'white';
+        b.style.color = isActive ? 'white' : 'var(--color-text-secondary)';
+        b.style.borderColor = isActive ? 'var(--color-primary)' : 'var(--color-border)';
+      });
+
+      const stForm = $('form-reg-student');
+      const deptForm = $('form-reg-dept');
+      const svcForm = $('form-reg-svc');
+
+      if (stForm) stForm.classList.toggle('hidden', regtype !== 'student');
+      if (deptForm) deptForm.classList.toggle('hidden', regtype !== 'department');
+      if (svcForm) svcForm.classList.toggle('hidden', regtype !== 'service');
+    });
+  });
+}
+
+function bindStudentRegisterBtn() {
   const btn = $('register-btn');
   if (!btn || btn._bound) return;
   btn._bound = true;
@@ -310,21 +414,97 @@ function bindStudentRegister() {
     const errEl = $('register-error');
     clearErr(errEl);
     const full_name = $('reg-name').value.trim();
-    const student_number = $('reg-studnum').value.trim();
     const email = $('reg-email').value.trim();
     const password = $('reg-password').value;
     const confirm_password = $('reg-confirm').value;
-    if (!full_name || !student_number || !email || !password || !confirm_password)
+    const school = $('reg-school').value;
+
+    if (!full_name || !email || !password || !confirm_password || !school)
       return err(errEl, 'Please fill in all fields.');
-    if (password.length < 8) return err(errEl, 'Password must be at least 8 characters.');
+
+    if (!email.toLowerCase().endsWith('@mymail.mapua.edu.ph'))
+      return err(errEl, 'Student email must end with @mymail.mapua.edu.ph.');
+
+    if (password !== confirm_password)
+      return err(errEl, 'Passwords do not match.');
+
+    if (school !== 'School of Information Technology')
+      return err(errEl, 'Only School of Information Technology is available for student registration at this time.');
+
     btn.disabled = true; btn.textContent = 'Creating account…';
     try {
-      const data = await api('POST', '/api/auth/register', { full_name, student_number, email, password, confirm_password });
+      const data = await api('POST', '/api/auth/register-student', { full_name, email, password, confirm_password, school });
       currentUser = data.user;
       initSocket();
-      goTo('student-dashboard');
+      routeByRole();
     } catch (e) { err(errEl, e.message); }
-    finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+    finally { btn.disabled = false; btn.textContent = 'Register Student Account'; }
+  });
+}
+
+function bindDeptRegisterBtn() {
+  const btn = $('reg-dept-btn');
+  if (!btn || btn._bound) return;
+  btn._bound = true;
+  btn.addEventListener('click', async () => {
+    const errEl = $('reg-dept-error');
+    clearErr(errEl);
+    const full_name = $('reg-dept-name').value.trim();
+    const email = $('reg-dept-email').value.trim();
+    const password = $('reg-dept-pass').value;
+    const confirm_password = $('reg-dept-confirm').value;
+    const department = $('reg-dept-select').value;
+
+    if (!full_name || !email || !password || !confirm_password || !department)
+      return err(errEl, 'Please fill in all fields.');
+
+    if (!email.toLowerCase().endsWith('@mapua.edu.ph'))
+      return err(errEl, 'Departmental staff email must end with @mapua.edu.ph.');
+
+    if (password !== confirm_password)
+      return err(errEl, 'Passwords do not match.');
+
+    btn.disabled = true; btn.textContent = 'Registering…';
+    try {
+      const data = await api('POST', '/api/auth/register-department', { full_name, email, password, confirm_password, department });
+      currentUser = data.user;
+      initSocket();
+      routeByRole();
+    } catch (e) { err(errEl, e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Register Department Staff'; }
+  });
+}
+
+function bindServiceRegisterBtn() {
+  const btn = $('reg-svc-btn');
+  if (!btn || btn._bound) return;
+  btn._bound = true;
+  btn.addEventListener('click', async () => {
+    const errEl = $('reg-svc-error');
+    clearErr(errEl);
+    const full_name = $('reg-svc-name').value.trim();
+    const email = $('reg-svc-email').value.trim();
+    const password = $('reg-svc-pass').value;
+    const confirm_password = $('reg-svc-confirm').value;
+    const service_office = $('reg-svc-select').value;
+
+    if (!full_name || !email || !password || !confirm_password || !service_office)
+      return err(errEl, 'Please fill in all fields.');
+
+    if (!email.toLowerCase().endsWith('@mapua.edu.ph'))
+      return err(errEl, 'Service office staff email must end with @mapua.edu.ph.');
+
+    if (password !== confirm_password)
+      return err(errEl, 'Passwords do not match.');
+
+    btn.disabled = true; btn.textContent = 'Registering…';
+    try {
+      const data = await api('POST', '/api/auth/register-service', { full_name, email, password, confirm_password, service_office });
+      currentUser = data.user;
+      initSocket();
+      routeByRole();
+    } catch (e) { err(errEl, e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Register Service Staff'; }
   });
 }
 

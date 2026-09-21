@@ -49,25 +49,44 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- 2. STUDENT LOGIN                                               -->
+    <!-- 2. LOGIN (UNIFIED MULTI-PORTAL)                                -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section id="view-student-login" class="view-section hidden">
       <div class="centered-page-wrapper">
-        <div class="centered-card">
-          <div class="card-title">Student Login</div>
-          <div class="card-subtitle">Sign in with your Mapúa email</div>
+        <div class="centered-card" style="max-width:440px;">
+          <div class="card-title">Sign In</div>
+          <div class="card-subtitle" id="login-portal-subtitle">Select your access type to log in</div>
+
+          <!-- Portal Access Type Switcher -->
+          <div class="portal-tabs" style="display:flex; gap:6px; margin-bottom:18px; border-bottom:2px solid var(--color-border); padding-bottom:8px;">
+            <button class="portal-tab-btn active" data-portal="student" style="flex:1; padding:8px 6px; font-weight:700; font-size:12px; border:1px solid var(--color-primary); background:var(--color-primary); color:white; border-radius:4px; cursor:pointer;">Student</button>
+            <button class="portal-tab-btn" data-portal="department" style="flex:1; padding:8px 6px; font-weight:700; font-size:12px; border:1px solid var(--color-border); background:white; color:var(--color-text-secondary); border-radius:4px; cursor:pointer;">Department</button>
+            <button class="portal-tab-btn" data-portal="service" style="flex:1; padding:8px 6px; font-weight:700; font-size:12px; border:1px solid var(--color-border); background:white; color:var(--color-text-secondary); border-radius:4px; cursor:pointer;">Service Office</button>
+          </div>
+
+          <input type="hidden" id="login-portal-type" value="student">
+
           <div class="form-group">
-            <label class="form-label" for="login-email">Email Address</label>
-            <input class="form-control" type="email" id="login-email" placeholder="student@mapua.edu.ph">
+            <label class="form-label" for="login-email">Email Address <span id="login-domain-hint" style="font-size:11px; font-weight:normal; color:var(--color-primary);">(@mymail.mapua.edu.ph)</span></label>
+            <input class="form-control" type="email" id="login-email" placeholder="studentdemo@mymail.mapua.edu.ph">
           </div>
           <div class="form-group">
             <label class="form-label" for="login-password">Password</label>
             <input class="form-control" type="password" id="login-password" placeholder="••••••••">
           </div>
-          <div id="login-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;"></div>
+          <div id="login-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;padding:8px 12px;background:#FFF3F2;border:1px solid #F8D7DA;border-radius:4px;"></div>
           <button class="btn btn-black btn-block" id="login-btn" style="margin-top:4px; padding:11px;">Log In</button>
+          
+          <div id="demo-credentials-box" style="margin-top:14px; background:#FFFBEB; border:1px solid var(--color-secondary); border-radius:var(--radius-sm); padding:10px 14px; font-size:12px;">
+            <div style="font-weight:700; margin-bottom:4px; color:#92400E;">Demo Account Credentials:</div>
+            <div id="demo-credentials-content">
+              <strong>Email:</strong> <code>studentdemo@mymail.mapua.edu.ph</code><br>
+              <strong>Password:</strong> <code>student123</code>
+            </div>
+          </div>
+
           <p style="text-align:center;font-size:12px;color:var(--color-text-muted);margin-top:16px;">
-            Don't have an account? <a href="#" data-view="student-register" style="color:var(--color-primary);font-weight:600;">Register</a>
+            Don't have an account? <a href="#" data-view="student-register" style="color:var(--color-primary);font-weight:600;">Register Here</a>
           </p>
           <p style="text-align:center;font-size:12px;color:var(--color-text-muted);margin-top:8px;">
             <a href="#" data-view="landing" style="color:var(--color-text-muted);">← Back</a>
@@ -77,37 +96,126 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- 3. STUDENT REGISTER                                            -->
+    <!-- 3. REGISTRATION (STUDENT, DEPARTMENT, SERVICE)                -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <section id="view-student-register" class="view-section hidden">
       <div class="centered-page-wrapper">
-        <div class="centered-card" style="max-width:460px;">
+        <div class="centered-card" style="max-width:480px;">
           <div class="card-title">Create Account</div>
-          <div class="card-subtitle">Register with your Mapúa email</div>
-          <div class="form-group">
-            <label class="form-label" for="reg-name">Full Name</label>
-            <input class="form-control" type="text" id="reg-name" placeholder="Juan Dela Cruz">
+          <div class="card-subtitle">Select your account type to register</div>
+
+          <!-- Registration Access Type Switcher -->
+          <div class="reg-tabs" style="display:flex; gap:6px; margin-bottom:18px; border-bottom:2px solid var(--color-border); padding-bottom:8px;">
+            <button class="reg-tab-btn active" data-regtype="student" style="flex:1; padding:8px 6px; font-weight:700; font-size:12px; border:1px solid var(--color-primary); background:var(--color-primary); color:white; border-radius:4px; cursor:pointer;">Student</button>
+            <button class="reg-tab-btn" data-regtype="department" style="flex:1; padding:8px 6px; font-weight:700; font-size:12px; border:1px solid var(--color-border); background:white; color:var(--color-text-secondary); border-radius:4px; cursor:pointer;">Department</button>
+            <button class="reg-tab-btn" data-regtype="service" style="flex:1; padding:8px 6px; font-weight:700; font-size:12px; border:1px solid var(--color-border); background:white; color:var(--color-text-secondary); border-radius:4px; cursor:pointer;">Service Office</button>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="reg-studnum">Student Number</label>
-            <input class="form-control" type="text" id="reg-studnum" placeholder="2023xxxxxx">
+
+          <!-- Student Registration Form -->
+          <div id="form-reg-student">
+            <div class="form-group">
+              <label class="form-label" for="reg-name">Full Name</label>
+              <input class="form-control" type="text" id="reg-name" placeholder="Juan Dela Cruz">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-email">Student Email <span style="font-size:11px; color:var(--color-primary); font-weight:normal;">(*@mymail.mapua.edu.ph)</span></label>
+              <input class="form-control" type="email" id="reg-email" placeholder="studentdemo@mymail.mapua.edu.ph">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-password">Password</label>
+              <input class="form-control" type="password" id="reg-password" placeholder="Minimum 8 characters">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-confirm">Confirm Password</label>
+              <input class="form-control" type="password" id="reg-confirm" placeholder="Repeat password">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-school">Department / School</label>
+              <select class="form-control" id="reg-school">
+                <option value="School of Information Technology" selected>School of Information Technology (Selectable)</option>
+                <option value="E.T. Yuchengco School of Business" disabled>E.T. Yuchengco School of Business (Future Expansion)</option>
+                <option value="School of Health Sciences" disabled>School of Health Sciences (Future Expansion)</option>
+                <option value="School of Nursing" disabled>School of Nursing (Future Expansion)</option>
+                <option value="School of Medicine" disabled>School of Medicine (Future Expansion)</option>
+                <option value="School of Multimedia and Digital Arts" disabled>School of Multimedia and Digital Arts (Future Expansion)</option>
+                <option value="School of Graduate Studies" disabled>School of Graduate Studies (Future Expansion)</option>
+                <option value="Senior High School" disabled>Senior High School (Future Expansion)</option>
+              </select>
+            </div>
+            <div id="register-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;padding:8px 12px;background:#FFF3F2;border:1px solid #F8D7DA;border-radius:4px;"></div>
+            <button class="btn btn-black btn-block" id="register-btn" style="margin-top:4px;padding:11px;">Register Student Account</button>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="reg-email">Email Address</label>
-            <input class="form-control" type="email" id="reg-email" placeholder="student@mapua.edu.ph">
+
+          <!-- Department Staff Registration Form -->
+          <div id="form-reg-dept" class="hidden">
+            <div class="form-group">
+              <label class="form-label" for="reg-dept-name">Full Name</label>
+              <input class="form-control" type="text" id="reg-dept-name" placeholder="Department Staff Name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-dept-email">Official Mapúa Email <span style="font-size:11px; color:var(--color-primary); font-weight:normal;">(*@mapua.edu.ph)</span></label>
+              <input class="form-control" type="email" id="reg-dept-email" placeholder="departmental@mapua.edu.ph">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-dept-pass">Password</label>
+              <input class="form-control" type="password" id="reg-dept-pass" placeholder="Minimum 8 characters">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-dept-confirm">Confirm Password</label>
+              <input class="form-control" type="password" id="reg-dept-confirm" placeholder="Repeat password">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-dept-select">Department</label>
+              <select class="form-control" id="reg-dept-select">
+                <option value="School of Information Technology">School of Information Technology</option>
+                <option value="E.T. Yuchengco School of Business">E.T. Yuchengco School of Business</option>
+                <option value="School of Health Sciences">School of Health Sciences</option>
+                <option value="School of Nursing">School of Nursing</option>
+                <option value="School of Medicine">School of Medicine</option>
+                <option value="School of Multimedia and Digital Arts">School of Multimedia and Digital Arts</option>
+              </select>
+            </div>
+            <div id="reg-dept-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;padding:8px 12px;background:#FFF3F2;border:1px solid #F8D7DA;border-radius:4px;"></div>
+            <button class="btn btn-black btn-block" id="reg-dept-btn" style="margin-top:4px;padding:11px;">Register Department Staff</button>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="reg-password">Password</label>
-            <input class="form-control" type="password" id="reg-password" placeholder="Minimum 8 characters">
+
+          <!-- Service Office Staff Registration Form -->
+          <div id="form-reg-svc" class="hidden">
+            <div class="form-group">
+              <label class="form-label" for="reg-svc-name">Staff Name</label>
+              <input class="form-control" type="text" id="reg-svc-name" placeholder="Service Staff Name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-svc-email">Official Mapúa Email <span style="font-size:11px; color:var(--color-primary); font-weight:normal;">(*@mapua.edu.ph)</span></label>
+              <input class="form-control" type="email" id="reg-svc-email" placeholder="service@mapua.edu.ph">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-svc-pass">Password</label>
+              <input class="form-control" type="password" id="reg-svc-pass" placeholder="Minimum 8 characters">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-svc-confirm">Confirm Password</label>
+              <input class="form-control" type="password" id="reg-svc-confirm" placeholder="Repeat password">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-svc-select">Service Office</label>
+              <select class="form-control" id="reg-svc-select">
+                <option value="Admissions">Admissions</option>
+                <option value="Treasury">Treasury</option>
+                <option value="Registrar">Registrar</option>
+                <option value="Accounting">Accounting</option>
+                <option value="Cashier">Cashier</option>
+                <option value="Student Affairs">Student Affairs</option>
+                <option value="DO-IT / IT Helpdesk">DO-IT / IT Helpdesk</option>
+                <option value="Other Services">Other Services</option>
+              </select>
+            </div>
+            <div id="reg-svc-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;padding:8px 12px;background:#FFF3F2;border:1px solid #F8D7DA;border-radius:4px;"></div>
+            <button class="btn btn-black btn-block" id="reg-svc-btn" style="margin-top:4px;padding:11px;">Register Service Staff</button>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="reg-confirm">Confirm Password</label>
-            <input class="form-control" type="password" id="reg-confirm" placeholder="Repeat password">
-          </div>
-          <div id="register-error" class="hidden" style="color:var(--color-primary);font-size:13px;margin-bottom:12px;"></div>
-          <button class="btn btn-black btn-block" id="register-btn" style="margin-top:4px;padding:11px;">Create Account</button>
+
           <p style="text-align:center;font-size:12px;color:var(--color-text-muted);margin-top:16px;">
-            Already have an account? <a href="#" data-view="student-login" style="color:var(--color-primary);font-weight:600;">Log In</a>
+            Already have an account? <a href="#" data-view="student-login" style="color:var(--color-primary);font-weight:600;">Log In Here</a>
           </p>
         </div>
       </div>

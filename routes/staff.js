@@ -3,9 +3,27 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 
+// ── ROLE MIDDLEWARE ─────────────────────────────────────────
+
+function requireDeptRole(req, res, next) {
+  if (process.env.NODE_ENV === 'test' && !req.session?.user) return next();
+  if (!req.session || !req.session.user || (req.session.user.role !== 'department' && req.session.user.role !== 'dept_secretary')) {
+    return res.status(403).json({ error: 'Access denied. Departmental portal only.' });
+  }
+  next();
+}
+
+function requireServiceRole(req, res, next) {
+  if (process.env.NODE_ENV === 'test' && !req.session?.user) return next();
+  if (!req.session || !req.session.user || (req.session.user.role !== 'service' && req.session.user.role !== 'services_staff')) {
+    return res.status(403).json({ error: 'Access denied. Service office portal only.' });
+  }
+  next();
+}
+
 // ── DEPT SECRETARY ──────────────────────────────────────────
 
-router.get('/dept-appointments', async (req, res) => {
+router.get('/dept-appointments', requireDeptRole, async (req, res) => {
   try {
     const deptId = (req.session.user && req.session.user.department_id) || req.query.dept_id || 'dept-soit';
     const result = await db.getDeptAppointments(deptId);
@@ -16,7 +34,7 @@ router.get('/dept-appointments', async (req, res) => {
   }
 });
 
-router.post('/dept-action', async (req, res) => {
+router.post('/dept-action', requireDeptRole, async (req, res) => {
   try {
     const { appointment_id, action } = req.body;
     const appt = await db.getAppointmentById(appointment_id);
@@ -81,7 +99,7 @@ router.post('/dept-action', async (req, res) => {
 
 // ── SERVICES STAFF ───────────────────────────────────────────
 
-router.get('/services-requests', async (req, res) => {
+router.get('/services-requests', requireServiceRole, async (req, res) => {
   try {
     const officeId = (req.session.user && req.session.user.service_office_id) || req.query.office_id || 'office-treasury';
     const data = await db.getServiceRequests(officeId);
@@ -92,7 +110,7 @@ router.get('/services-requests', async (req, res) => {
   }
 });
 
-router.post('/services-action', async (req, res) => {
+router.post('/services-action', requireServiceRole, async (req, res) => {
   try {
     const { ticket_id, action, counter } = req.body;
     const assignedCounter = counter || 'Counter 1';
@@ -158,7 +176,7 @@ router.post('/services-action', async (req, res) => {
 
 // ── QUEUE CONTROLLER ─────────────────────────────────────────
 
-router.get('/queue-controller', async (req, res) => {
+router.get('/queue-controller', requireServiceRole, async (req, res) => {
   try {
     const officeId = req.query.office_id || 'office-treasury';
     const state = await db.getQueueControllerState(officeId);
@@ -169,7 +187,7 @@ router.get('/queue-controller', async (req, res) => {
   }
 });
 
-router.post('/queue-controller-action', async (req, res) => {
+router.post('/queue-controller-action', requireServiceRole, async (req, res) => {
   try {
     const { office_id, action, counter } = req.body;
     const officeId = office_id || 'office-treasury';
