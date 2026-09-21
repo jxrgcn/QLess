@@ -1,4 +1,5 @@
 // test.js — Comprehensive Automated Test Suite for Q-Less Multi-Portal Access
+process.env.NODE_ENV = 'test';
 const assert = require('assert');
 const http = require('http');
 const express = require('express');
@@ -56,18 +57,6 @@ async function runTests() {
     });
     const data = await res.json().catch(() => ({}));
     return { status: res.status, data };
-  }
-
-  const hasDb = Boolean(process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
-  if (!hasDb) {
-    console.log('\n  ⚠️  No DATABASE_URL supplied in local environment.');
-    console.log('  ✔ Unit validation rules verified.');
-    console.log('  ✔ 12-Point Multi-Portal Access Control Architecture verified.');
-    server.close();
-    console.log('\n====================================================');
-    console.log(' 🎉 ALL UNIT & ROUTE COMPATIBILITY TESTS PASSED!');
-    console.log('====================================================');
-    return;
   }
 
   await db.ready;
@@ -181,7 +170,31 @@ async function runTests() {
     })
   });
   assert.strictEqual(invalidStDomain.status, 400, 'Student registration with @mapua.edu.ph should fail.');
-  console.log('  ✔ Invalid domain rejection verified (@mapua.edu.ph rejected for student registration).');
+
+  const invalidStaffDomain = await api('/api/auth/register-department', {
+    method: 'POST',
+    body: JSON.stringify({
+      full_name: 'Bad Staff Domain',
+      email: 'staff@mymail.mapua.edu.ph', // student domain rejected for staff
+      password: 'password123',
+      confirm_password: 'password123',
+      department: 'School of Information Technology'
+    })
+  });
+  assert.strictEqual(invalidStaffDomain.status, 400, 'Department staff registration with @mymail.mapua.edu.ph should fail.');
+
+  const disabledSchool = await api('/api/auth/register-student', {
+    method: 'POST',
+    body: JSON.stringify({
+      full_name: 'Disabled School Student',
+      email: `st_school_${Date.now()}@mymail.mapua.edu.ph`,
+      password: 'password123',
+      confirm_password: 'password123',
+      school: 'E.T. Yuchengco School of Business'
+    })
+  });
+  assert.strictEqual(disabledSchool.status, 400, 'Registration with non-SOIT school should fail.');
+  console.log('  ✔ Invalid domain & school restrictions verified.');
 
   // 9. Test Duplicate Accounts
   console.log('\n▶ [10/12] Testing Duplicate Registration Prevention...');

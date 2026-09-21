@@ -27,7 +27,7 @@ router.post('/login', async (req, res) => {
     if (targetPortal === 'student' && !trimmedEmail.endsWith('@mymail.mapua.edu.ph')) {
       return res.status(400).json({ error: 'Student login requires a @mymail.mapua.edu.ph email address.' });
     }
-    if ((targetPortal === 'department' || targetPortal === 'service') && !trimmedEmail.endsWith('@mapua.edu.ph')) {
+    if ((targetPortal === 'department' || targetPortal === 'service') && (!trimmedEmail.endsWith('@mapua.edu.ph') || trimmedEmail.endsWith('@mymail.mapua.edu.ph'))) {
       return res.status(400).json({ error: 'Staff login requires an official @mapua.edu.ph email address.' });
     }
 
@@ -39,12 +39,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: `Account does not exist for the ${targetPortal} portal.` });
 
     let match = false;
-    if (user.password_hash && user.password_hash.startsWith('$2b$')) {
+    if (user.password_hash) {
       match = await bcrypt.compare(password, user.password_hash);
-    }
-    // Fallback for legacy demo hashes
-    if (!match && (user.password_hash === 'demo' || password === 'password123' || password === 'student123' || password === 'department123' || password === 'service123')) {
-      match = true;
     }
 
     if (!match)
@@ -151,7 +147,7 @@ router.post('/register-department', async (req, res) => {
     if (!isValidEmail(trimmedEmail))
       return res.status(400).json({ error: 'Invalid email format.' });
 
-    if (!trimmedEmail.endsWith('@mapua.edu.ph'))
+    if (!trimmedEmail.endsWith('@mapua.edu.ph') || trimmedEmail.endsWith('@mymail.mapua.edu.ph'))
       return res.status(400).json({ error: 'Departmental staff email must end with @mapua.edu.ph.' });
 
     if (password !== confirm_password)
@@ -205,11 +201,18 @@ router.post('/register-service', async (req, res) => {
     if (!isValidEmail(trimmedEmail))
       return res.status(400).json({ error: 'Invalid email format.' });
 
-    if (!trimmedEmail.endsWith('@mapua.edu.ph'))
+    if (!trimmedEmail.endsWith('@mapua.edu.ph') || trimmedEmail.endsWith('@mymail.mapua.edu.ph'))
       return res.status(400).json({ error: 'Service office email must end with @mapua.edu.ph.' });
 
     if (password !== confirm_password)
       return res.status(400).json({ error: 'Passwords do not match.' });
+
+    const validOffices = [
+      'Admissions', 'Treasury', 'Registrar', 'Accounting',
+      'Cashier', 'Student Affairs', 'DO-IT / IT Helpdesk', 'Other Services'
+    ];
+    if (!validOffices.includes(service_office))
+      return res.status(400).json({ error: 'Please select a valid service office from the list.' });
 
     const existingUser = await db.findUserByEmail(trimmedEmail);
     if (existingUser)

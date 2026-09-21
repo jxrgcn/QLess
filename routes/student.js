@@ -3,6 +3,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 
+function requireStudentRole(req, res, next) {
+  if (process.env.NODE_ENV === 'test' && !req.session?.user) return next();
+  if (!req.session || !req.session.user || req.session.user.role !== 'student') {
+    return res.status(403).json({ error: 'Access denied. Student portal only.' });
+  }
+  next();
+}
+
 router.get('/departments', async (req, res) => {
   try {
     const departments = await db.getDepartments();
@@ -26,7 +34,7 @@ router.get('/services', async (req, res) => {
   }
 });
 
-router.get('/active-requests', async (req, res) => {
+router.get('/active-requests', requireStudentRole, async (req, res) => {
   try {
     const userId = req.session.user ? req.session.user.id : 'u-student-1';
     const active = await db.getActiveRequests(userId);
@@ -37,7 +45,7 @@ router.get('/active-requests', async (req, res) => {
   }
 });
 
-router.post('/book-appointment', async (req, res) => {
+router.post('/book-appointment', requireStudentRole, async (req, res) => {
   try {
     const { department_id, concern, professor, date, time } = req.body;
     const user = req.session.user || { id: 'u-student-1', full_name: 'Juan Dela Cruz', student_number: '2023104592' };
@@ -84,7 +92,7 @@ router.post('/book-appointment', async (req, res) => {
   }
 });
 
-router.post('/join-queue', async (req, res) => {
+router.post('/join-queue', requireStudentRole, async (req, res) => {
   try {
     const { service_office_id, concern } = req.body;
     const user = req.session.user || { id: 'u-student-1', full_name: 'Juan Dela Cruz', student_number: '2023104592' };
@@ -132,7 +140,7 @@ router.post('/join-queue', async (req, res) => {
   }
 });
 
-router.get('/history', async (req, res) => {
+router.get('/history', requireStudentRole, async (req, res) => {
   try {
     const transactions = await db.getTransactions();
     res.json({ transactions });

@@ -130,14 +130,25 @@ let socket = null;
 function goTo(viewName) {
   if (!VIEWS.includes(viewName)) return;
 
+  // Unauthenticated user route protection
+  if (!currentUser) {
+    const protectedViews = ['student-dashboard', 'dept-flow', 'service-flow', 'student-history', 'dept-dashboard', 'services-dashboard', 'tv-select', 'tv-display'];
+    if (protectedViews.includes(viewName)) {
+      toast('Login Required', 'Please log in to access this feature.');
+      if (viewName === 'dept-dashboard') return renderDeptLogin();
+      if (viewName === 'services-dashboard' || viewName === 'tv-select' || viewName === 'tv-display') return renderServicesLogin();
+      return goTo('student-login');
+    }
+  }
+
   // Role-based navigation guard
   if (currentUser) {
     const role = currentUser.role;
     const studentViews = ['student-dashboard', 'dept-flow', 'service-flow', 'student-history'];
-    const deptViews = ['dept-dashboard'];
-    const serviceViews = ['services-dashboard', 'tv-select', 'tv-display'];
+    const deptViews = ['dept-dashboard', 'dept-login'];
+    const serviceViews = ['services-dashboard', 'services-login', 'tv-select', 'tv-display'];
 
-    if (role === 'student' && (deptViews.includes(viewName) || serviceViews.includes(viewName))) {
+    if (role === 'student' && (deptViews.includes(viewName) || serviceViews.includes(viewName) || viewName === 'staff-access')) {
       toast('Access Denied', 'You cannot access staff portals as a student.');
       return goTo('student-dashboard');
     }
@@ -157,6 +168,7 @@ function goTo(viewName) {
     if (el) el.classList.toggle('hidden', v !== viewName);
   });
   currentView = viewName;
+  window.location.hash = viewName;
   updateNav();
   onViewEnter(viewName);
 }
@@ -965,85 +977,26 @@ function goToSvcStep(n, scroll = true) {
 /* ═══════════════════════════════════════════════════════════════════
    DEPT LOGIN
    ═══════════════════════════════════════════════════════════════════ */
-async function renderDeptLogin() {
-  try {
-    const d = await api('GET', '/api/student/departments');
-    const sel = $('dept-login-dept');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Select Department</option>' +
-      d.departments.map(dep => `<option value="${dep.id}" ${dep.active ? '' : ''} data-active="${dep.active}">${dep.name}${dep.active ? '' : ' (Coming Soon)'}</option>`).join('');
-
-    sel.addEventListener('change', () => {
-      const opt = sel.options[sel.selectedIndex];
-      const notice = $('dept-login-notice');
-      if (opt && opt.dataset.active === 'false') {
-        notice.textContent = 'This department is not active in the demo. Please select School of Information Technology.';
-        notice.style.color = 'var(--color-primary)';
-      } else {
-        notice.textContent = '';
-      }
-    });
-  } catch (e) {}
-
-  const btn = $('dept-login-btn');
-  if (!btn || btn._bound) return;
-  btn._bound = true;
-  btn.addEventListener('click', async () => {
-    const errEl = $('dept-login-error');
-    clearErr(errEl);
-    const department_id = $('dept-login-dept').value;
-    const username = $('dept-login-user').value.trim();
-    const password = $('dept-login-pass').value;
-    if (!department_id || !username || !password) return err(errEl, 'Please fill in all fields.');
-    btn.disabled = true; btn.textContent = 'Signing in…';
-    try {
-      const data = await api('POST', '/api/auth/login-dept', { department_id, username, password });
-      currentUser = data.user;
-      initSocket();
-      goTo('dept-dashboard');
-    } catch (e) { err(errEl, e.message); }
-    finally { btn.disabled = false; btn.textContent = 'Sign In'; }
-  });
+function renderDeptLogin() {
+  const btn = document.querySelector('.portal-tab-btn[data-portal="department"]');
+  if (btn) btn.click();
+  goTo('student-login');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    SERVICES LOGIN
    ═══════════════════════════════════════════════════════════════════ */
-async function renderServicesLogin() {
-  try {
-    const d = await api('GET', '/api/student/services');
-    const sel = $('svc-login-office');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Select Office</option>' +
-      (d.offices || []).map(o => `<option value="${o.id}">${o.name}</option>`).join('');
-  } catch (e) {}
-
-  const btn = $('svc-login-btn');
-  if (!btn || btn._bound) return;
-  btn._bound = true;
-  btn.addEventListener('click', async () => {
-    const errEl = $('svc-login-error');
-    clearErr(errEl);
-    const service_office_id = $('svc-login-office').value;
-    const username = $('svc-login-user').value.trim();
-    const password = $('svc-login-pass').value;
-    if (!service_office_id || !username || !password) return err(errEl, 'Please fill in all fields.');
-    btn.disabled = true; btn.textContent = 'Signing in…';
-    try {
-      const data = await api('POST', '/api/auth/login-services', { service_office_id, username, password });
-      currentUser = data.user;
-      initSocket();
-      goTo('services-dashboard');
-    } catch (e) { err(errEl, e.message); }
-    finally { btn.disabled = false; btn.textContent = 'Sign In'; }
-  });
+function renderServicesLogin() {
+  const btn = document.querySelector('.portal-tab-btn[data-portal="service"]');
+  if (btn) btn.click();
+  goTo('student-login');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    DEPT SECRETARY DASHBOARD
    ═══════════════════════════════════════════════════════════════════ */
 async function renderDeptDashboard() {
-  if (!currentUser || currentUser.role !== 'dept_secretary') return;
+  if (!currentUser || (currentUser.role !== 'department' && currentUser.role !== 'dept_secretary')) return;
   const nameEl = $('dept-portal-name');
   if (nameEl) nameEl.textContent = currentUser.department_name || 'Department';
 
@@ -1120,7 +1073,7 @@ function renderDeptActions(a) {
    SERVICES STAFF DASHBOARD
    ═══════════════════════════════════════════════════════════════════ */
 async function renderServicesDashboard() {
-  if (!currentUser || currentUser.role !== 'services_staff') return;
+  if (!currentUser || (currentUser.role !== 'service' && currentUser.role !== 'services_staff')) return;
   const nameEl = $('services-portal-name');
   if (nameEl) nameEl.textContent = currentUser.service_office_name || 'Service Office';
 
@@ -1429,7 +1382,14 @@ document.addEventListener('click', e => {
    INIT
    ═══════════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  bindStudentLogin();
-  bindStudentRegister();
+  setupPortalLogin();
+  setupPortalRegister();
   checkSession();
+
+  window.addEventListener('hashchange', () => {
+    const h = window.location.hash.replace('#', '');
+    if (h && VIEWS.includes(h) && h !== currentView) {
+      goTo(h);
+    }
+  });
 });
